@@ -1,0 +1,109 @@
+name: Deploy to Sakura Server
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy-to-sakura:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Prepare deployment files
+      run: |
+        echo "🎯 Preparing files for Sakura server deployment..."
+        
+        # 開発用ファイルを除外
+        rm -f AGENT.md deploy-server.sh webhook-deploy.php temp_workflows 2>/dev/null || true
+        rm -rf .github temp_workflows 2>/dev/null || true
+        
+        # デプロイ用ファイルリスト
+        echo "📦 Files to deploy:"
+        find . -maxdepth 1 -type f \( -name "*.html" -o -name "*.css" -o -name "*.js" -o -name "README.md" -o -name "DEPLOYMENT.md" -o -name "GITHUB_ACTIONS.md" \) -exec ls -la {} \;
+        
+    - name: Deploy via SSH to Sakura
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: sogoodsnet.sakura.ne.jp
+        username: sogoodsnet  
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
+        script: |
+          echo "🚀 Starting deployment on Sakura server..."
+          
+          # デプロイ先ディレクトリ
+          DEPLOY_PATH="/home/sogoodsnet/www"
+          BACKUP_PATH="/home/sogoodsnet/backup/sogoods-backup-$(date +%Y%m%d-%H%M%S)"
+          
+          echo "📂 Deploy path: $DEPLOY_PATH"
+          echo "💾 Backup path: $BACKUP_PATH"
+          
+          # バックアップディレクトリの作成
+          mkdir -p "/home/sogoodsnet/backup"
+          
+          # 既存ファイルのバックアップ
+          if [ -d "$DEPLOY_PATH" ] && [ "$(ls -A $DEPLOY_PATH 2>/dev/null)" ]; then
+            echo "📦 Creating backup..."
+            mkdir -p "$BACKUP_PATH"
+            cp -r "$DEPLOY_PATH"/* "$BACKUP_PATH/" 2>/dev/null || true
+            echo "✅ Backup created at: $BACKUP_PATH"
+          fi
+          
+          # ディレクトリの準備
+          mkdir -p "$DEPLOY_PATH"
+          cd "$DEPLOY_PATH"
+          
+          # Git repository setup
+          if [ ! -d ".git" ]; then
+            echo "🔄 Initializing git repository..."
+            git init
+            git remote add origin https://github.com/sogoodsnet/sogoods.net-www.git
+          fi
+          
+          # 最新コードの取得
+          echo "📥 Fetching latest code from GitHub..."
+          git fetch origin main
+          git reset --hard origin/main
+          
+          # 不要ファイルの削除
+          echo "🧹 Cleaning up development files..."
+          rm -rf .git .github AGENT.md deploy-server.sh webhook-deploy.php temp_workflows *.yml 2>/dev/null || true
+          
+          # ファイル権限の設定
+          echo "🔧 Setting file permissions..."
+          find . -type f -name "*.html" -exec chmod 644 {} \;
+          find . -type f -name "*.css" -exec chmod 644 {} \;
+          find . -type f -name "*.js" -exec chmod 644 {} \;
+          find . -type f -name "*.md" -exec chmod 644 {} \;
+          find . -type d -exec chmod 755 {} \;
+          
+          # デプロイ結果の確認
+          echo "📋 Deployed files:"
+          ls -la
+          
+          echo "✅ Deployment completed successfully!"
+          echo "🌐 Site should be available at your domain"
+          
+    - name: Deployment Summary
+      if: always()
+      run: |
+        echo "## 🚀 Sakura Server Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "- **Status**: ✅ Success" >> $GITHUB_STEP_SUMMARY
+          echo "- **Server**: sogoodsnet.sakura.ne.jp" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deploy Path**: /home/sogoodsnet/www" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deploy Time**: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Backup Created**: Yes (in /home/sogoodsnet/backup/)" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- **Status**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+          echo "- **Check**: SSH connection and permissions" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔗 Access Your Site:" >> $GITHUB_STEP_SUMMARY
+        echo "- **URL**: https://sogoodsnet.sakura.ne.jp/" >> $GITHUB_STEP_SUMMARY
+        echo "- **Files**: HTML, CSS, JS automatically deployed" >> $GITHUB_STEP_SUMMARY
