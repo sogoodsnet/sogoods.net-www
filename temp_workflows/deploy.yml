@@ -1,0 +1,57 @@
+name: Deploy SoGoods.net
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Validate files
+      run: |
+        echo "🔍 Validating project files..."
+        echo "HTML files:"
+        ls -la *.html || echo "No HTML files found"
+        echo "CSS files:"  
+        ls -la *.css || echo "No CSS files found"
+        echo "JavaScript files:"
+        ls -la *.js || echo "No JS files found"
+        
+    - name: Test HTML validity
+      run: |
+        echo "🧪 Testing HTML structure..."
+        for file in *.html; do
+          if [[ -f "$file" ]]; then
+            echo "Testing: $file"
+            # Basic HTML structure check
+            if grep -q "<!DOCTYPE html>" "$file" && grep -q "</html>" "$file"; then
+              echo "✅ $file - Valid HTML structure"
+            else
+              echo "❌ $file - Invalid HTML structure"
+              exit 1
+            fi
+          fi
+        done
+        
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      if: github.ref == 'refs/heads/main'
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: .
+        exclude_assets: '.github,AGENT.md,deploy-server.sh,webhook-deploy.php,DEPLOYMENT.md'
+        
+    - name: Create deployment summary
+      if: success()
+      run: |
+        echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Status**: ✅ Success" >> $GITHUB_STEP_SUMMARY  
+        echo "- **Site URL**: https://sogoodsnet.github.io/sogoods.net-www/" >> $GITHUB_STEP_SUMMARY
+        echo "- **Deploy Time**: $(date)" >> $GITHUB_STEP_SUMMARY
+        echo "- **Files Deployed**: $(ls *.html *.css 2>/dev/null | wc -l) files" >> $GITHUB_STEP_SUMMARY

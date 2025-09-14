@@ -1,0 +1,131 @@
+name: Deploy to Custom Server
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      server_host:
+        description: 'Server hostname or IP'
+        required: false
+        default: 'your-server.com'
+      deploy_path:
+        description: 'Deployment path on server'
+        required: false
+        default: '/var/www/html/sogoods'
+
+jobs:
+  deploy-to-server:
+    runs-on: ubuntu-latest
+    # このジョブはSecretが設定されている場合のみ実行
+    if: ${{ secrets.SERVER_HOST != '' }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Prepare deployment files
+      run: |
+        echo "🎯 Preparing files for server deployment..."
+        
+        # 開発用ファイルを除外
+        rm -f AGENT.md deploy-server.sh webhook-deploy.php 2>/dev/null || true
+        rm -rf .github 2>/dev/null || true
+        
+        # デプロイ用ファイルリスト
+        echo "📦 Files to deploy:"
+        find . -type f \( -name "*.html" -o -name "*.css" -o -name "*.js" -o -name "*.md" \) -exec ls -la {} \;
+        
+    - name: Deploy via SSH
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.SERVER_HOST || github.event.inputs.server_host }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        port: ${{ secrets.SERVER_PORT || 22 }}
+        script: |
+          echo "🚀 Starting deployment on server..."
+          
+          # デプロイ先ディレクトリ
+          DEPLOY_PATH="${{ secrets.DEPLOY_PATH || github.event.inputs.deploy_path || '/var/www/html/sogoods' }}"
+          BACKUP_PATH="/tmp/sogoods-backup-$(date +%Y%m%d-%H%M%S)"
+          
+          echo "📂 Deploy path: $DEPLOY_PATH"
+          echo "💾 Backup path: $BACKUP_PATH"
+          
+          # バックアップの作成
+          if [ -d "$DEPLOY_PATH" ]; then
+            echo "📦 Creating backup..."
+            mkdir -p "$BACKUP_PATH"
+            cp -r "$DEPLOY_PATH"/* "$BACKUP_PATH/" 2>/dev/null || true
+          fi
+          
+          # ディレクトリの準備
+          mkdir -p "$DEPLOY_PATH"
+          cd "$DEPLOY_PATH"
+          
+          # Git repository setup
+          if [ ! -d ".git" ]; then
+            echo "🔄 Initializing git repository..."
+            git init
+            git remote add origin https://github.com/sogoodsnet/sogoods.net-www.git
+          fi
+          
+          # 最新コードの取得
+          echo "📥 Fetching latest code..."
+          git fetch origin main
+          git reset --hard origin/main
+          
+          # 不要ファイルの削除
+          echo "🧹 Cleaning up..."
+          rm -rf .git .github AGENT.md deploy-server.sh webhook-deploy.php 2>/dev/null || true
+          
+          # ファイル権限の設定
+          echo "🔧 Setting file permissions..."
+          find . -type f -name "*.html" -exec chmod 644 {} \;
+          find . -type f -name "*.css" -exec chmod 644 {} \;
+          find . -type f -name "*.js" -exec chmod 644 {} \;
+          find . -type d -exec chmod 755 {} \;
+          
+          # Webサーバーの再起動（オプショナル）
+          echo "🔄 Reloading web server..."
+          sudo systemctl reload nginx 2>/dev/null || sudo systemctl reload apache2 2>/dev/null || echo "Web server reload skipped"
+          
+          echo "✅ Deployment completed successfully!"
+          echo "🌐 Site should be available at your domain"
+          
+    - name: Deploy via SCP (Fallback)
+      if: failure()
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        port: ${{ secrets.SERVER_PORT || 22 }}
+        source: "*.html,*.css,*.js,README.md"
+        target: ${{ secrets.DEPLOY_PATH || '/var/www/html/sogoods' }}
+        
+  notify-deployment:
+    runs-on: ubuntu-latest
+    needs: deploy-to-server
+    if: always()
+    
+    steps:
+    - name: Deployment Summary
+      run: |
+        echo "## 🚀 Server Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ needs.deploy-to-server.result }}" == "success" ]; then
+          echo "- **Status**: ✅ Success" >> $GITHUB_STEP_SUMMARY
+          echo "- **Server**: ${{ secrets.SERVER_HOST || 'Custom Server' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deploy Time**: $(date)" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- **Status**: ❌ Failed or Skipped" >> $GITHUB_STEP_SUMMARY
+          echo "- **Reason**: Missing server configuration secrets" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔧 Required Secrets for Server Deployment:" >> $GITHUB_STEP_SUMMARY
+        echo "- \`SERVER_HOST\`: Server hostname or IP" >> $GITHUB_STEP_SUMMARY
+        echo "- \`SERVER_USER\`: SSH username" >> $GITHUB_STEP_SUMMARY
+        echo "- \`SERVER_SSH_KEY\`: SSH private key" >> $GITHUB_STEP_SUMMARY
+        echo "- \`DEPLOY_PATH\`: Deployment path (optional)" >> $GITHUB_STEP_SUMMARY
