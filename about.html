@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About - SoGoods.net</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .nav {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .nav a {
+            color: #667eea;
+            text-decoration: none;
+            margin: 0 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .nav a:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        h1 {
+            color: #4a4a4a;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 0.5rem;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .info-item {
+            padding: 1rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .info-item strong {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="nav">
+                <a href="index.html">🏠 ホーム</a>
+                <a href="about.html">📋 About</a>
+            </div>
+
+            <h1>📋 About SoGoods.net</h1>
+            
+            <h2>プロジェクト概要</h2>
+            <p>SoGoods.netは静的HTMLで構築されたテストサイトです。最小構成でありながら、モダンなデザインと使いやすさを両立しています。</p>
+            
+            <h2>技術仕様</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <strong>フロントエンド</strong><br>
+                    HTML5, CSS3, JavaScript
+                </div>
+                <div class="info-item">
+                    <strong>デザイン</strong><br>
+                    レスポンシブ対応
+                </div>
+                <div class="info-item">
+                    <strong>ホスティング</strong><br>
+                    GitHub Pages対応
+                </div>
+                <div class="info-item">
+                    <strong>パフォーマンス</strong><br>
+                    軽量・高速表示
+                </div>
+            </div>
+
+            <h2>特徴</h2>
+            <ul style="margin-left: 1.5rem; margin-top: 1rem;">
+                <li>静的ファイルによる高速読み込み</li>
+                <li>モバイルファーストのレスポンシブデザイン</li>
+                <li>美しいグラデーションとアニメーション</li>
+                <li>SEO最適化された構造</li>
+                <li>アクセシビリティ対応</li>
+            </ul>
+
+            <div style="text-align: center; margin-top: 2rem; padding: 1rem; background: #f0f8ff; border-radius: 8px;">
+                <p><strong>🚀 テストサイト正常稼働中</strong></p>
+                <p style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">
+                    作成日時: <span id="build-time"></span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // ビルド時間を表示
+            const buildTime = new Date().toLocaleString('ja-JP');
+            document.getElementById('build-time').textContent = buildTime;
+            
+            console.log('About ページが読み込まれました');
+        });
+    </script>
+</body>
+</html>
