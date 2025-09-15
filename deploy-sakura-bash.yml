@@ -1,0 +1,96 @@
+name: Deploy to Sakura Server (Bash)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy-with-bash:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Deploy using Bash shell
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: sogoodsnet.sakura.ne.jp
+        username: sogoodsnet
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
+        timeout: 60s
+        command_timeout: 120s
+        # Bashシェルを明示的に指定
+        script: |
+          #!/bin/bash
+          
+          echo "🚀 Bash deployment to Sakura server"
+          echo "Shell: $0"
+          echo "User: $(whoami)"
+          echo "Date: $(date)"
+          
+          # Bash変数定義
+          DEPLOY_PATH="/home/sogoodsnet/www"
+          BACKUP_PATH="/home/sogoodsnet/backup/sogoods-backup-$(date +%Y%m%d-%H%M%S)"
+          
+          echo "📂 Deploy path: $DEPLOY_PATH"
+          echo "💾 Backup path: $BACKUP_PATH"
+          
+          # バックアップディレクトリの作成
+          mkdir -p "/home/sogoodsnet/backup"
+          
+          # 既存ファイルのバックアップ
+          if [[ -d "$DEPLOY_PATH" ]] && [[ -n "$(ls -A $DEPLOY_PATH 2>/dev/null)" ]]; then
+            echo "📦 Creating backup..."
+            mkdir -p "$BACKUP_PATH"
+            cp -r "$DEPLOY_PATH"/* "$BACKUP_PATH/" 2>/dev/null || true
+            echo "✅ Backup created at: $BACKUP_PATH"
+          fi
+          
+          # ディレクトリの準備
+          mkdir -p "$DEPLOY_PATH"
+          cd "$DEPLOY_PATH"
+          
+          # Bashの場所を確認
+          which bash && echo "Bash available" || echo "Bash not found"
+          
+          # 手動でファイルダウンロード（Git使わない）
+          echo "📥 Downloading files directly..."
+          
+          # curlまたはwgetでファイルダウンロード
+          if command -v curl >/dev/null 2>&1; then
+            echo "Using curl for download"
+            curl -s -L -o index.html https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/index.html
+            curl -s -L -o about.html https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/about.html
+            curl -s -L -o style.css https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/style.css
+            curl -s -L -o README.md https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/README.md
+          elif command -v fetch >/dev/null 2>&1; then
+            echo "Using fetch for download"
+            fetch -q https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/index.html
+            fetch -q https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/about.html
+            fetch -q https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/style.css
+            fetch -q https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/README.md
+          else
+            echo "No download tool available"
+            exit 1
+          fi
+          
+          # ファイル権限の設定
+          echo "🔧 Setting file permissions..."
+          chmod 644 *.html *.css *.md 2>/dev/null || true
+          chmod 755 . 2>/dev/null || true
+          
+          # 結果確認
+          echo "📋 Deployed files:"
+          ls -la
+          
+          # ファイル内容確認
+          echo "📄 Checking deployed content:"
+          if [[ -f "index.html" ]]; then
+            echo "✅ index.html exists ($(wc -l < index.html) lines)"
+          else
+            echo "❌ index.html missing"
+          fi
+          
+          echo "✅ Deployment completed successfully!"
+          echo "🌐 Site should be available at: https://sogoodsnet.sakura.ne.jp/"
