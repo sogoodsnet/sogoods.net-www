@@ -1,8 +1,10 @@
 name: Deploy to Sakura Server (Simple)
 
 on:
+  push:
+    branches: [ main ]
   workflow_dispatch:
-
+  
 jobs:
   simple-deploy:
     runs-on: ubuntu-latest
