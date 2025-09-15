@@ -25,6 +25,43 @@ class PhotoManager {
         this.setupRandomDisplay();
         this.setupRealtimeStats();
         this.loadStats();
+        this.setupLogo();
+    }
+
+    // ロゴの自動設定
+    setupLogo() {
+        const logoElement = document.getElementById('main-logo');
+        if (!logoElement) return;
+        
+        // ロゴファイルを順番にチェック
+        const logoFiles = [
+            '/assets/logo/sogoods-logo.png',
+            '/assets/logo/logo-main.svg',
+            '/assets/logo/brand-logo.png',
+            '/assets/logo/logo.png',
+            '/assets/logo/logo.svg'
+        ];
+        
+        this.loadLogo(logoFiles, 0, logoElement);
+    }
+
+    // ロゴファイルを順番に試行
+    loadLogo(logoFiles, index, logoElement) {
+        if (index >= logoFiles.length) {
+            console.log('🎨 No logo file found, using text placeholder');
+            return;
+        }
+        
+        const img = new Image();
+        img.onload = () => {
+            logoElement.innerHTML = `<img src="${logoFiles[index]}" alt="sogoods.net" style="width:100%;height:100%;object-fit:contain;">`;
+            console.log(`🎨 Logo loaded: ${logoFiles[index]}`);
+        };
+        img.onerror = () => {
+            // 次のファイルを試行
+            this.loadLogo(logoFiles, index + 1, logoElement);
+        };
+        img.src = logoFiles[index];
     }
 
     // 写真リストを動的に読み込み
