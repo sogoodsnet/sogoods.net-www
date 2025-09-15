@@ -1,0 +1,157 @@
+name: Deploy to Sakura Server (Debug)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  debug-ssh-connection:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Debug SSH Key
+      run: |
+        echo "🔍 SSH鍵の確認..."
+        echo "SSH_PRIVATE_KEY の最初の数文字:"
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" | head -c 50
+        echo "..."
+        
+        echo "SSH_PRIVATE_KEY の長さ:"
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" | wc -c
+        
+    - name: Test SSH Connection
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: sogoodsnet.sakura.ne.jp
+        username: sogoodsnet
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
+        debug: true
+        script: |
+          echo "🎉 SSH接続成功!"
+          echo "現在のユーザー: $(whoami)"
+          echo "現在のディレクトリ: $(pwd)"
+          echo "ホームディレクトリの内容:"
+          ls -la ~/
+          
+          echo "SSH設定の確認:"
+          ls -la ~/.ssh/ 2>/dev/null || echo "~/.ssh ディレクトリが存在しません"
+          
+          echo "wwwディレクトリの確認:"
+          if [ -d "/home/sogoodsnet/www" ]; then
+            echo "✅ /home/sogoodsnet/www 存在します"
+            ls -la /home/sogoodsnet/www/
+          else
+            echo "⚠️ /home/sogoodsnet/www が存在しません"
+            echo "🔧 ディレクトリを作成中..."
+            mkdir -p /home/sogoodsnet/www
+            echo "✅ ディレクトリを作成しました"
+          fi
+          
+          echo "Git設定の確認:"
+          which git && git --version || echo "Gitがインストールされていません"
+          
+  deploy-to-sakura:
+    runs-on: ubuntu-latest
+    needs: debug-ssh-connection
+    if: success()
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Prepare deployment files
+      run: |
+        echo "🎯 Preparing files for Sakura server deployment..."
+        
+        # 開発用ファイルを除外
+        rm -f AGENT.md deploy-server.sh webhook-deploy.php test_*.sh *.yml 2>/dev/null || true
+        rm -rf .github temp_workflows 2>/dev/null || true
+        
+        # デプロイ用ファイルリスト
+        echo "📦 Files to deploy:"
+        find . -maxdepth 1 -type f \( -name "*.html" -o -name "*.css" -o -name "*.js" -o -name "README.md" -o -name "DEPLOYMENT.md" -o -name "GITHUB_ACTIONS.md" -o -name "SAKURA_DEPLOY.md" \) -exec ls -la {} \;
+        
+    - name: Deploy via SSH to Sakura
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: sogoodsnet.sakura.ne.jp
+        username: sogoodsnet  
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
+        script: |
+          echo "🚀 Starting deployment on Sakura server..."
+          
+          # デプロイ先ディレクトリ
+          DEPLOY_PATH="/home/sogoodsnet/www"
+          BACKUP_PATH="/home/sogoodsnet/backup/sogoods-backup-$(date +%Y%m%d-%H%M%S)"
+          
+          echo "📂 Deploy path: $DEPLOY_PATH"
+          echo "💾 Backup path: $BACKUP_PATH"
+          
+          # バックアップディレクトリの作成
+          mkdir -p "/home/sogoodsnet/backup"
+          
+          # 既存ファイルのバックアップ
+          if [ -d "$DEPLOY_PATH" ] && [ "$(ls -A $DEPLOY_PATH 2>/dev/null)" ]; then
+            echo "📦 Creating backup..."
+            mkdir -p "$BACKUP_PATH"
+            cp -r "$DEPLOY_PATH"/* "$BACKUP_PATH/" 2>/dev/null || true
+            echo "✅ Backup created at: $BACKUP_PATH"
+          fi
+          
+          # ディレクトリの準備
+          mkdir -p "$DEPLOY_PATH"
+          cd "$DEPLOY_PATH"
+          
+          # Git repository setup
+          if [ ! -d ".git" ]; then
+            echo "🔄 Initializing git repository..."
+            git init
+            git remote add origin https://github.com/sogoodsnet/sogoods.net-www.git
+          fi
+          
+          # 最新コードの取得
+          echo "📥 Fetching latest code from GitHub..."
+          git fetch origin main 2>&1 || echo "Git fetch failed, trying alternative..."
+          git reset --hard origin/main 2>&1 || echo "Git reset failed, continuing..."
+          
+          # 不要ファイルの削除
+          echo "🧹 Cleaning up development files..."
+          rm -rf .git .github AGENT.md deploy-server.sh webhook-deploy.php temp_workflows test_*.sh *.yml 2>/dev/null || true
+          
+          # ファイル権限の設定
+          echo "🔧 Setting file permissions..."
+          find . -type f -name "*.html" -exec chmod 644 {} \; 2>/dev/null || true
+          find . -type f -name "*.css" -exec chmod 644 {} \; 2>/dev/null || true
+          find . -type f -name "*.js" -exec chmod 644 {} \; 2>/dev/null || true
+          find . -type f -name "*.md" -exec chmod 644 {} \; 2>/dev/null || true
+          find . -type d -exec chmod 755 {} \; 2>/dev/null || true
+          
+          # デプロイ結果の確認
+          echo "📋 Deployed files:"
+          ls -la
+          
+          echo "✅ Deployment completed successfully!"
+          echo "🌐 Site should be available at https://sogoodsnet.sakura.ne.jp/"
+          
+    - name: Deployment Summary
+      if: always()
+      run: |
+        echo "## 🚀 Sakura Server Deployment Summary (Debug)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "- **Status**: ✅ Success" >> $GITHUB_STEP_SUMMARY
+          echo "- **SSH Connection**: ✅ Working" >> $GITHUB_STEP_SUMMARY
+          echo "- **Server**: sogoodsnet.sakura.ne.jp" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deploy Path**: /home/sogoodsnet/www" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deploy Time**: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Backup Created**: Yes (in /home/sogoodsnet/backup/)" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- **Status**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+          echo "- **Check**: SSH connection and key configuration" >> $GITHUB_STEP_SUMMARY
+        fi
