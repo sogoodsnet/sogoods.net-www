@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoGoods.net</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.2;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 280px 1fr 280px;
+            grid-template-rows: 60px 1fr;
+            height: 100vh;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            background: #fff;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .logo-dot {
+            color: #2196F3;
+        }
+
+        /* Left Column */
+        .left-column {
+            background: #fff;
+            padding: 20px 15px;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+        }
+
+        .text-block {
+            font-size: 10px;
+            line-height: 1.3;
+            text-align: justify;
+            color: #444;
+            columns: 1;
+            column-gap: 15px;
+            hyphens: auto;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: bold;
+            margin: 15px 0 8px 0;
+            color: #333;
+            text-transform: uppercase;
+        }
+
+        /* Center Column */
+        .center-column {
+            position: relative;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .main-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: grayscale(1);
+            transition: filter 0.3s ease;
+        }
+
+        .center-column:hover .main-image {
+            filter: grayscale(0.7);
+        }
+
+        .infinity-symbol {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 120px;
+            color: #2196F3;
+            opacity: 0.8;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .number-overlay {
+            position: absolute;
+            color: #333;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 2px 4px;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+
+        .num-1 { top: 15%; left: 20%; }
+        .num-2 { top: 25%; right: 25%; }
+        .num-3 { bottom: 30%; left: 15%; }
+        .num-4 { bottom: 20%; right: 20%; }
+        .num-5 { top: 40%; left: 60%; }
+        .num-6 { top: 60%; right: 45%; }
+
+        /* Right Column */
+        .right-column {
+            background: #333;
+            color: #fff;
+            padding: 20px 15px;
+            border-left: 1px solid #ddd;
+            overflow-y: auto;
+        }
+
+        .news-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .news-icon {
+            width: 20px;
+            height: 20px;
+            background: #2196F3;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .news-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .news-item {
+            margin-bottom: 15px;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .news-date {
+            color: #2196F3;
+            font-size: 10px;
+            margin-bottom: 3px;
+        }
+
+        .news-headline {
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+
+        .news-text {
+            color: #ccc;
+            text-align: justify;
+        }
+
+        /* Floating Elements */
+        .blue-circle {
+            position: absolute;
+            background: #2196F3;
+            border-radius: 50%;
+            z-index: 5;
+        }
+
+        .circle-1 {
+            width: 60px;
+            height: 60px;
+            top: 20%;
+            left: -30px;
+        }
+
+        .circle-2 {
+            width: 40px;
+            height: 40px;
+            bottom: 25%;
+            right: -20px;
+        }
+
+        .circle-3 {
+            width: 80px;
+            height: 80px;
+            top: 60%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0.7;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-rows: 60px 400px auto auto;
+                height: auto;
+            }
+            
+            .left-column,
+            .center-column,
+            .right-column {
+                grid-column: 1;
+            }
+            
+            .text-block {
+                columns: 2;
+                font-size: 11px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .text-block {
+                columns: 1;
+                font-size: 12px;
+            }
+            
+            .infinity-symbol {
+                font-size: 80px;
+            }
+            
+            .container {
+                grid-template-rows: 50px 300px auto auto;
+            }
+        }
+
+        /* Gallery Modal */
+        .gallery-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .gallery-content {
+            max-width: 90%;
+            max-height: 90%;
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .gallery-image {
+            width: 100%;
+            max-height: 70vh;
+            object-fit: contain;
+        }
+
+        .gallery-info {
+            padding: 20px;
+            text-align: center;
+        }
+
+        .gallery-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: #fff;
+            font-size: 40px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating Blue Circles -->
+    <div class="blue-circle circle-1"></div>
+    <div class="blue-circle circle-2"></div>
+    <div class="blue-circle circle-3"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">sogoods<span class="logo-dot">.</span>net</div>
+        </header>
+
+        <!-- Left Column -->
+        <aside class="left-column">
+            <div class="section-title">PHOTOGRAPHY</div>
+            <div class="text-block">
+                美しい瞬間を切り取る写真家として、自然の息づかいや都市の躍動を表現し続けています。光と影、色彩と構図を通じて、見る者の心に響く作品作りを心がけています。
+                
+                風景写真から ポートレート、街角のスナップショットまで、様々なジャンルに挑戦しながら、独自の視点で世界を切り取っています。カメラを通して見える世界の美しさを、多くの人と共有したいと思っています。
+                
+                撮影技術の向上はもちろん、被写体との対話、環境への配慮、そして見る人への想いを大切にしながら、一枚一枚に魂を込めて撮影しています。
+            </div>
+
+            <div class="section-title">EXHIBITIONS</div>
+            <div class="text-block">
+                これまでに数多くの個展・グループ展に参加し、多くの方々に作品をご覧いただいてきました。季節をテーマにした「四季の詩」シリーズや、都市と自然の共存を表現した「Urban Nature」シリーズなど、テーマ性を持った作品群を発表しています。
+            </div>
+
+            <div class="section-title">WORKSHOPS</div>
+            <div class="text-block">
+                写真の技術だけでなく、心の目を養うことの大切さをお伝えする写真教室を定期的に開催しています。初心者から上級者まで、それぞれのレベルに応じた指導を心がけています。
+            </div>
+        </aside>
+
+        <!-- Center Column -->
+        <main class="center-column" onclick="openGallery()">
+            <img src="https://images.unsplash.com/photo-1544966503-7cc5ac882d5f?w=600&h=800&fit=crop" alt="Featured Photography" class="main-image">
+            
+            <!-- Infinity Symbol -->
+            <div class="infinity-symbol">∞</div>
+            
+            <!-- Number Overlays -->
+            <div class="number-overlay num-1">01</div>
+            <div class="number-overlay num-2">24</div>
+            <div class="number-overlay num-3">58</div>
+            <div class="number-overlay num-4">73</div>
+            <div class="number-overlay num-5">42</div>
+            <div class="number-overlay num-6">91</div>
+        </main>
+
+        <!-- Right Column -->
+        <aside class="right-column">
+            <div class="news-header">
+                <div class="news-icon"></div>
+                <div class="news-title">NEWS</div>
+            </div>
+
+            <div class="news-item">
+                <div class="news-date">2025.09.15</div>
+                <div class="news-headline">新作写真展「秋の調べ」開催のお知らせ</div>
+                <div class="news-text">今年撮影した紅葉風景を中心とした写真展を10月より開催いたします。山間部で捉えた瞬間の美しさをご堪能いただけます。会場は銀座ギャラリースペースにて。詳細は後日お知らせいたします。</div>
+            </div>
+
+            <div class="news-item">
+                <div class="news-date">2025.09.12</div>
+                <div class="news-headline">短歌「レンズ越しに」</div>
+                <div class="news-text">風涼し<br>山もみじ葉の<br>舞い踊り<br>レンズに映る<br>季節のしらべ</div>
+            </div>
+
+            <div class="news-item">
+                <div class="news-date">2025.09.08</div>
+                <div class="news-headline">撮影日記より</div>
+                <div class="news-text">早朝5時からの山岳撮影。朝霧が幻想的な風景を作り出していました。光と影のコントラストが美しく、思わずシャッターを切り続けてしまいました。自然の力強さと繊細さを同時に感じた一日でした。</div>
+            </div>
+
+            <div class="news-item">
+                <div class="news-date">2025.09.05</div>
+                <div class="news-headline">みーこと散歩道</div>
+                <div class="news-text">愛猫みーこと近所の散歩道を歩きながら、日常の中にある小さな発見を写真に収めています。みーこの好奇心旺盛な様子が、新しい視点を与えてくれます。</div>
+            </div>
+
+            <div class="news-item">
+                <div class="news-date">2025.09.01</div>
+                <div class="news-headline">ワークショップ「光を読む」</div>
+                <div class="news-text">9月のワークショップでは「光を読む」をテーマに、様々な光の条件下での撮影技法をお教えします。参加者募集中です。</div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Gallery Modal -->
+    <div class="gallery-modal" id="galleryModal">
+        <div class="gallery-close" onclick="closeGallery()">&times;</div>
+        <div class="gallery-content">
+            <img src="" alt="Gallery Image" class="gallery-image" id="galleryImage">
+            <div class="gallery-info">
+                <h3 id="galleryTitle">Photography Gallery</h3>
+                <p id="galleryDescription">写真ギャラリーをお楽しみください</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Gallery functions
+        function openGallery() {
+            const modal = document.getElementById('galleryModal');
+            const image = document.getElementById('galleryImage');
+            
+            // Sample gallery images
+            const images = [
+                'https://images.unsplash.com/photo-1544966503-7cc5ac882d5f?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&h=600&fit=crop'
+            ];
+            
+            const randomImage = images[Math.floor(Math.random() * images.length)];
+            image.src = randomImage;
+            
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeGallery() {
+            const modal = document.getElementById('galleryModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        // Close modal on outside click
+        document.getElementById('galleryModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeGallery();
+            }
+        });
+
+        // Floating animation for blue circles
+        function animateCircles() {
+            const circles = document.querySelectorAll('.blue-circle');
+            circles.forEach((circle, index) => {
+                let position = 0;
+                setInterval(() => {
+                    position += 0.5;
+                    const offset = Math.sin(position + index) * 5;
+                    circle.style.transform = `translateY(${offset}px)`;
+                }, 100);
+            });
+        }
+
+        // Initialize animations
+        document.addEventListener('DOMContentLoaded', () => {
+            animateCircles();
+        });
+
+        // ESC key to close modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeGallery();
+            }
+        });
+    </script>
+</body>
+</html>
