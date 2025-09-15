@@ -1,0 +1,165 @@
+name: Deploy to Sakura Server (FreeBSD)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy-freebsd:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Prepare deployment files
+      run: |
+        echo "🎯 Preparing files for FreeBSD deployment..."
+        
+        # 開発用ファイルを除外
+        rm -f AGENT.md deploy-server.sh webhook-deploy.php test_*.sh *.yml 2>/dev/null || true
+        rm -rf .github temp_workflows 2>/dev/null || true
+        
+        # デプロイ用ファイルリスト
+        echo "📦 Files to deploy:"
+        find . -maxdepth 1 -type f \( -name "*.html" -o -name "*.css" -o -name "*.js" -o -name "README.md" -o -name "*DEPLOY*.md" -o -name "GITHUB_ACTIONS.md" \) -exec ls -la {} \;
+        
+    - name: Deploy to FreeBSD Sakura Server
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: sogoodsnet.sakura.ne.jp
+        username: sogoodsnet
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
+        timeout: 60s
+        command_timeout: 120s
+        script: |
+          # FreeBSD用のシェルスクリプト（sh/csh互換）
+          echo "🚀 FreeBSD Sakura Server Deployment Started"
+          echo "Current shell: $SHELL"
+          echo "Current user: `whoami`"
+          echo "Current directory: `pwd`"
+          
+          # 変数設定（FreeBSD sh互換）
+          set DEPLOY_PATH = "/home/sogoodsnet/www"
+          set BACKUP_DIR = "/home/sogoodsnet/backup"
+          set TIMESTAMP = "`date +%Y%m%d-%H%M%S`"
+          set BACKUP_PATH = "$BACKUP_DIR/sogoods-backup-$TIMESTAMP"
+          
+          echo "📂 Deploy path: $DEPLOY_PATH"
+          echo "💾 Backup path: $BACKUP_PATH"
+          
+          # バックアップディレクトリの作成
+          if (! -d "$BACKUP_DIR") then
+            echo "Creating backup directory..."
+            mkdir -p "$BACKUP_DIR"
+          endif
+          
+          # 既存ファイルのバックアップ
+          if (-d "$DEPLOY_PATH") then
+            if ("`ls -A $DEPLOY_PATH`" != "") then
+              echo "📦 Creating backup..."
+              mkdir -p "$BACKUP_PATH"
+              cp -r "$DEPLOY_PATH"/* "$BACKUP_PATH"/ >& /dev/null
+              echo "✅ Backup created at: $BACKUP_PATH"
+            endif
+          endif
+          
+          # デプロイディレクトリの作成
+          mkdir -p "$DEPLOY_PATH"
+          cd "$DEPLOY_PATH"
+          
+          # Git設定確認
+          if (! -x "`which git`") then
+            echo "❌ Git not found, using manual file transfer"
+            exit 1
+          endif
+          
+          # Gitリポジトリの初期化
+          if (! -d ".git") then
+            echo "🔄 Initializing git repository..."
+            git init
+            git remote add origin https://github.com/sogoodsnet/sogoods.net-www.git >& /dev/null || echo "Remote already exists"
+          endif
+          
+          # 最新コードの取得（タイムアウト対策）
+          echo "📥 Fetching latest code..."
+          git config --local http.timeout 30
+          git config --local http.lowSpeedLimit 1000
+          git config --local http.lowSpeedTime 10
+          
+          git fetch --depth=1 origin main >& /dev/null || echo "Fetch with depth failed, trying full fetch"
+          git reset --hard origin/main >& /dev/null || echo "Reset failed, continuing"
+          
+          # 不要ファイルの削除
+          echo "🧹 Cleaning up..."
+          rm -rf .git .github AGENT.md deploy-server.sh webhook-deploy.php temp_workflows test_*.sh *.yml >& /dev/null
+          
+          # ファイル権限の設定
+          echo "🔧 Setting permissions..."
+          find . -name "*.html" -exec chmod 644 {} \; >& /dev/null
+          find . -name "*.css" -exec chmod 644 {} \; >& /dev/null
+          find . -name "*.js" -exec chmod 644 {} \; >& /dev/null
+          find . -name "*.md" -exec chmod 644 {} \; >& /dev/null
+          find . -type d -exec chmod 755 {} \; >& /dev/null
+          
+          # 結果確認
+          echo "📋 Deployed files:"
+          ls -la
+          
+          echo "✅ FreeBSD deployment completed!"
+          echo "🌐 Site available at: https://sogoodsnet.sakura.ne.jp/"
+          
+    - name: Alternative Deployment (Manual)
+      if: failure()
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: sogoodsnet.sakura.ne.jp
+        username: sogoodsnet
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
+        timeout: 30s
+        script: |
+          echo "🔄 Alternative deployment method"
+          
+          # 基本的なディレクトリ作成
+          mkdir -p /home/sogoodsnet/www
+          mkdir -p /home/sogoodsnet/backup
+          
+          cd /home/sogoodsnet/www
+          
+          # 手動でファイルをダウンロード（Git使わない）
+          echo "📥 Manual file download..."
+          
+          # curlでファイルを個別ダウンロード
+          curl -s -o index.html https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/index.html || echo "index.html download failed"
+          curl -s -o about.html https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/about.html || echo "about.html download failed"
+          curl -s -o style.css https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/style.css || echo "style.css download failed"
+          
+          # 権限設定
+          chmod 644 *.html *.css >& /dev/null
+          chmod 755 . >& /dev/null
+          
+          echo "📋 Alternative deployment files:"
+          ls -la
+          
+          echo "✅ Alternative deployment completed"
+          
+    - name: Deployment Summary
+      if: always()
+      run: |
+        echo "## 🌸 FreeBSD Sakura Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ steps.deploy-freebsd.outcome }}" == "success" ]; then
+          echo "- **Status**: ✅ Success (Primary Method)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Method**: Git-based deployment" >> $GITHUB_STEP_SUMMARY
+        elif [ "${{ steps.alternative-deployment.outcome }}" == "success" ]; then
+          echo "- **Status**: ✅ Success (Alternative Method)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Method**: Manual file download" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- **Status**: ❌ Both methods failed" >> $GITHUB_STEP_SUMMARY
+          echo "- **Check**: FreeBSD shell compatibility and network access" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "- **Server**: FreeBSD on Sakura" >> $GITHUB_STEP_SUMMARY
+        echo "- **URL**: https://sogoodsnet.sakura.ne.jp/" >> $GITHUB_STEP_SUMMARY
