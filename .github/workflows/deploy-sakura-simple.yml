@@ -1,0 +1,100 @@
+name: Deploy to Sakura Server (Simple)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  simple-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Simple FreeBSD Deployment
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: sogoodsnet.sakura.ne.jp
+        username: sogoodsnet
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
+        timeout: 30s
+        script: |
+          echo "🚀 Simple Deployment to FreeBSD"
+          
+          # 基本情報確認
+          echo "User: `whoami`"
+          echo "Home: $HOME"
+          echo "Shell: $SHELL"
+          echo "Date: `date`"
+          
+          # ディレクトリ作成
+          mkdir -p $HOME/www
+          cd $HOME/www
+          
+          echo "Current directory: `pwd`"
+          
+          # 既存ファイルのバックアップ
+          if [ -f "index.html" ]; then
+            echo "Backing up existing files..."
+            mkdir -p $HOME/backup
+            cp *.html $HOME/backup/ 2>/dev/null || true
+            cp *.css $HOME/backup/ 2>/dev/null || true
+          fi
+          
+          echo "📥 Downloading files from GitHub..."
+          
+          # ファイルを個別ダウンロード
+          fetch -q -o index.html https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/index.html || curl -s -o index.html https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/index.html
+          fetch -q -o about.html https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/about.html || curl -s -o about.html https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/about.html
+          fetch -q -o style.css https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/style.css || curl -s -o style.css https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/style.css
+          fetch -q -o README.md https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/README.md || curl -s -o README.md https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/README.md
+          
+          # ファイル権限設定
+          chmod 644 *.html *.css *.md 2>/dev/null || true
+          chmod 755 .
+          
+          # 結果確認
+          echo "📋 Deployed files:"
+          ls -la
+          
+          # ファイル内容確認
+          echo "📄 index.html first line:"
+          head -1 index.html 2>/dev/null || echo "index.html not found"
+          
+          echo "✅ Simple deployment completed!"
+          
+    - name: Test Website Access
+      run: |
+        echo "🌐 Testing website access..."
+        sleep 5
+        
+        # HTTPステータス確認
+        STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://sogoodsnet.sakura.ne.jp/ || echo "000")
+        echo "HTTP Status: $STATUS"
+        
+        if [ "$STATUS" = "200" ]; then
+          echo "✅ Website is accessible!"
+        else
+          echo "⚠️ Website may not be accessible yet (Status: $STATUS)"
+        fi
+        
+    - name: Deployment Summary
+      if: always()
+      run: |
+        echo "## 🚀 Simple Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "- **Status**: ✅ Success" >> $GITHUB_STEP_SUMMARY
+          echo "- **Method**: Direct file download" >> $GITHUB_STEP_SUMMARY
+          echo "- **Files**: HTML, CSS, README deployed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- **Status**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+          echo "- **Check**: SSH connection and file download" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "- **Server**: FreeBSD Sakura" >> $GITHUB_STEP_SUMMARY
+        echo "- **URL**: https://sogoodsnet.sakura.ne.jp/" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔧 Next Steps:" >> $GITHUB_STEP_SUMMARY
+        echo "1. Access the URL to verify deployment" >> $GITHUB_STEP_SUMMARY
+        echo "2. If successful, use this workflow for regular updates" >> $GITHUB_STEP_SUMMARY
