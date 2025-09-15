@@ -1,0 +1,14 @@
+# みーこの写真サンプル（実際の写真に置き換えてください）
+
+現在はUnsplashからの猫写真サンプルを使用：
+- https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba
+- https://images.unsplash.com/photo-1533738363-b7f9aef128ce  
+- https://images.unsplash.com/photo-1583336663277-620dc1996580
+- https://images.unsplash.com/photo-1571566882372-1598d88abd90
+- https://images.unsplash.com/photo-1561948955-570b270e7c36
+- https://images.unsplash.com/photo-1583337130417-3346a1be7dee
+
+実際の運用では:
+1. みーこの実写真をこのフォルダにアップロード
+2. ファイル名例: miiko_001.jpg, miiko_sleeping.png など
+3. システムが自動で検出・ランダム表示

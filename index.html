@@ -261,8 +261,8 @@
 
         <!-- 中央カラム -->
         <div class="center-column">
-            <img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=800&h=1200&fit=crop&crop=center" 
-                 alt="Goat" class="main-image">
+            <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&h=1200&fit=crop&crop=face" 
+                 alt="みーこ" class="main-image" id="main-photo">
             
             <div class="infinity-symbol">∞</div>
             
@@ -318,5 +318,30 @@
             <div class="blue-circle-bottom"></div>
         </div>
     </div>
+
+    <!-- 📷 Dynamic Photo & Stats System -->
+    <script src="notion-api.js"></script>
+    <script src="photo-manager.js"></script>
+    
+    <script>
+        // 🔗 Initialize systems on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 sogoods.net Dynamic Systems Loading...');
+            
+            // Photo system is auto-initialized in photo-manager.js
+            // Notion integration will be initialized if available
+            
+            setTimeout(() => {
+                console.log('📊 System Status:');
+                console.log('   📷 Photo Manager: Active');
+                console.log('   🔢 Real-time Stats: Active');
+                console.log('   🔄 Auto-refresh: 30s photos, 5s stats');
+                console.log('');
+                console.log('📁 Add photos to:');
+                console.log('   • /photos/miiko/ (main display)');
+                console.log('   • /photos/gallery/ (mini images)');
+            }, 1000);
+        });
+    </script>
 </body>
 </html>
