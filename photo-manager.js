@@ -35,6 +35,7 @@ class PhotoManager {
         
         // ロゴファイルを順番にチェック
         const logoFiles = [
+            '/assets/logo/so-logo.png',
             '/assets/logo/sogoods-logo.png',
             '/assets/logo/logo-main.svg',
             '/assets/logo/brand-logo.png',
