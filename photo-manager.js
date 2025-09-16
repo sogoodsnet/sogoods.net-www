@@ -137,7 +137,7 @@ class PhotoManager {
         }, 300000);
     }
 
-    // ランダムに写真を表示
+    // ランダムに写真を表示（自動リサイズ付き）
     displayRandomPhoto() {
         if (this.miikoPhotos.length === 0) return;
         
@@ -146,7 +146,11 @@ class PhotoManager {
         
         const mainImage = document.querySelector('.main-image');
         if (mainImage) {
-            mainImage.src = selectedPhoto;
+            this.loadImageWithAutoResize(selectedPhoto, mainImage, {
+                targetWidth: 800,
+                targetHeight: 1200,
+                quality: 0.8
+            });
             this.currentPhoto = selectedPhoto;
             this.stats.viewCount++;
         }
@@ -154,7 +158,7 @@ class PhotoManager {
         console.log(`🎲 Random photo: ${randomIndex + 1}/${this.miikoPhotos.length}`);
     }
 
-    // 小さなギャラリーを更新
+    // 小さなギャラリーを更新（自動リサイズ付き）
     updateMiniGallery() {
         const miniImages = document.querySelectorAll('.mini-image');
         const allPhotos = [...this.miikoPhotos, ...this.galleryPhotos];
@@ -163,7 +167,11 @@ class PhotoManager {
         
         miniImages.forEach((img, index) => {
             const randomIndex = Math.floor(Math.random() * allPhotos.length);
-            img.src = allPhotos[randomIndex];
+            this.loadImageWithAutoResize(allPhotos[randomIndex], img, {
+                targetWidth: 120,
+                targetHeight: 90,
+                quality: 0.7
+            });
         });
     }
 
@@ -305,6 +313,115 @@ class PhotoManager {
         this.stats.notionStats = notionNumbers;
     }
 
+    // 自動リサイズ付き画像読み込み
+    loadImageWithAutoResize(src, imgElement, options = {}) {
+        const {
+            targetWidth = 800,
+            targetHeight = 600,
+            quality = 0.8,
+            fitMode = 'cover' // cover, contain, fill
+        } = options;
+
+        // 一時的にローディング表示
+        imgElement.style.opacity = '0.5';
+        
+        const img = new Image();
+        img.crossOrigin = 'anonymous'; // CORS対応
+        
+        img.onload = () => {
+            try {
+                // Canvas で自動リサイズ・クロップ
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // アスペクト比計算
+                const sourceRatio = img.width / img.height;
+                const targetRatio = targetWidth / targetHeight;
+                
+                let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+                
+                if (fitMode === 'cover') {
+                    // cover: はみ出した部分をクロップ
+                    if (sourceRatio > targetRatio) {
+                        drawHeight = targetHeight;
+                        drawWidth = drawHeight * sourceRatio;
+                        offsetX = (targetWidth - drawWidth) / 2;
+                    } else {
+                        drawWidth = targetWidth;
+                        drawHeight = drawWidth / sourceRatio;
+                        offsetY = (targetHeight - drawHeight) / 2;
+                    }
+                    canvas.width = targetWidth;
+                    canvas.height = targetHeight;
+                } else if (fitMode === 'contain') {
+                    // contain: 全体を表示、余白あり
+                    if (sourceRatio > targetRatio) {
+                        drawWidth = targetWidth;
+                        drawHeight = drawWidth / sourceRatio;
+                        offsetY = (targetHeight - drawHeight) / 2;
+                    } else {
+                        drawHeight = targetHeight;
+                        drawWidth = drawHeight * sourceRatio;
+                        offsetX = (targetWidth - drawWidth) / 2;
+                    }
+                    canvas.width = targetWidth;
+                    canvas.height = targetHeight;
+                    ctx.fillStyle = '#f0f0f0';
+                    ctx.fillRect(0, 0, targetWidth, targetHeight);
+                }
+                
+                // 高品質リサイズ設定
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                
+                // 画像描画
+                ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+                
+                // 最適化されたDataURLを生成
+                const optimizedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                
+                // 元の画像要素に適用
+                imgElement.src = optimizedDataUrl;
+                imgElement.style.opacity = '1';
+                
+                console.log(`🖼️ Auto-resized: ${img.width}x${img.height} → ${targetWidth}x${targetHeight}`);
+                
+            } catch (error) {
+                // Canvas処理に失敗した場合は元画像を直接表示
+                console.log('⚠️ Auto-resize failed, using original image:', error);
+                imgElement.src = src;
+                imgElement.style.opacity = '1';
+            }
+        };
+        
+        img.onerror = () => {
+            // 画像読み込み失敗時
+            console.log('❌ Image load failed:', src);
+            imgElement.style.opacity = '1';
+        };
+        
+        img.src = src;
+    }
+
+    // 画像の最適サイズを提案
+    getOptimalImageSize(type = 'main') {
+        if (type === 'main') {
+            return {
+                width: 800,
+                height: 1200,
+                aspectRatio: '2:3',
+                recommended: 'Portrait orientation preferred'
+            };
+        } else if (type === 'gallery') {
+            return {
+                width: 300,
+                height: 200,
+                aspectRatio: '3:2',
+                recommended: 'Landscape orientation preferred'
+            };
+        }
+    }
+
     // 手動でフォルダをチェック（開発時用）
     async checkPhotoFolders() {
         console.log('📁 Photo folder structure:');
@@ -312,19 +429,107 @@ class PhotoManager {
         console.log('   /photos/gallery/ <- ギャラリー写真をここに配置');
         console.log('');
         console.log('📄 Supported formats: .jpg, .jpeg, .png, .gif, .webp');
-        console.log('💡 Tip: 写真を追加後、ページをリロードすると自動検出されます');
+        console.log('🔧 Auto-resize: ANY size → optimized display size');
+        console.log('📐 Main photos: Auto-resized to 800x1200 (portrait)');
+        console.log('🖼️ Gallery photos: Auto-resized to 300x200 (landscape)');
+        console.log('💡 Tip: Upload any size - system handles optimization automatically!');
+    }
+}
+
+// 追加: ドラッグ&ドロップ自動リサイズ機能
+class ImageDropHandler {
+    constructor(photoManager) {
+        this.photoManager = photoManager;
+        this.setupDropZones();
+    }
+
+    setupDropZones() {
+        // メイン画像エリアをドロップゾーンに
+        const centerColumn = document.querySelector('.center-column');
+        if (centerColumn) {
+            centerColumn.addEventListener('dragover', this.handleDragOver.bind(this));
+            centerColumn.addEventListener('drop', this.handleDrop.bind(this));
+            centerColumn.addEventListener('dragenter', this.handleDragEnter.bind(this));
+            centerColumn.addEventListener('dragleave', this.handleDragLeave.bind(this));
+        }
+    }
+
+    handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+    }
+
+    handleDragEnter(e) {
+        e.preventDefault();
+        e.target.style.backgroundColor = 'rgba(33, 150, 243, 0.1)';
+        console.log('🎯 Drop zone activated - ready for image upload');
+    }
+
+    handleDragLeave(e) {
+        e.target.style.backgroundColor = '';
+    }
+
+    async handleDrop(e) {
+        e.preventDefault();
+        e.target.style.backgroundColor = '';
+        
+        const files = Array.from(e.dataTransfer.files);
+        const imageFiles = files.filter(file => file.type.startsWith('image/'));
+        
+        if (imageFiles.length === 0) {
+            console.log('❌ No image files found in drop');
+            return;
+        }
+
+        console.log(`📤 Processing ${imageFiles.length} dropped image(s)`);
+
+        for (const file of imageFiles) {
+            await this.processDroppedImage(file);
+        }
+    }
+
+    async processDroppedImage(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    // 自動リサイズして表示
+                    const mainImage = document.querySelector('.main-image');
+                    if (mainImage) {
+                        this.photoManager.loadImageWithAutoResize(e.target.result, mainImage, {
+                            targetWidth: 800,
+                            targetHeight: 1200,
+                            quality: 0.8
+                        });
+                        
+                        console.log(`✅ Processed: ${file.name} (${img.width}x${img.height})`);
+                    }
+                    resolve();
+                };
+                img.src = e.target.result;
+            };
+            
+            reader.readAsDataURL(file);
+        });
     }
 }
 
 // グローバルに公開
 window.PhotoManager = PhotoManager;
+window.ImageDropHandler = ImageDropHandler;
 
 // DOM読み込み後に自動初期化
 document.addEventListener('DOMContentLoaded', () => {
     window.photoManager = new PhotoManager();
+    window.imageDropHandler = new ImageDropHandler(window.photoManager);
     
     // 開発時のヘルプ表示
     setTimeout(() => {
         window.photoManager.checkPhotoFolders();
+        console.log('');
+        console.log('🎯 BONUS: Drag & Drop images directly onto center area!');
+        console.log('📱 Auto-resize: Upload ANY size - system optimizes automatically');
     }, 2000);
 });
