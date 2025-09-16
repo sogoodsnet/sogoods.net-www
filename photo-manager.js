@@ -167,11 +167,18 @@ class PhotoManager {
         
         miniImages.forEach((img, index) => {
             const randomIndex = Math.floor(Math.random() * allPhotos.length);
-            this.loadImageWithAutoResize(allPhotos[randomIndex], img, {
+            const photoSrc = allPhotos[randomIndex];
+            
+            // ほぼグレースケール画像をデフォルトで設定
+            this.loadImageWithAutoResize(photoSrc, img, {
                 targetWidth: 120,
                 targetHeight: 90,
-                quality: 0.7
+                quality: 0.7,
+                applyColorProcessing: 'grayscale'  // ほぼグレースケール
             });
+            
+            // ホバーエフェクト用のオリジナル色画像を準備
+            this.setupMiniGalleryHoverEffect(img, photoSrc);
         });
     }
 
@@ -319,7 +326,8 @@ class PhotoManager {
             targetWidth = 800,
             targetHeight = 600,
             quality = 0.8,
-            fitMode = 'cover' // cover, contain, fill
+            fitMode = 'cover', // cover, contain, fill
+            applyColorProcessing = false // 色処理オプション ('grayscale', true, false)
         } = options;
 
         // 一時的にローディング表示
@@ -377,6 +385,13 @@ class PhotoManager {
                 // 画像描画
                 ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
                 
+                // 色処理を条件付きで適用
+                if (applyColorProcessing === 'grayscale') {
+                    this.applyGrayscaleProcessing(ctx, targetWidth, targetHeight);
+                } else if (applyColorProcessing === true) {
+                    this.applyColorProcessing(ctx, targetWidth, targetHeight);
+                }
+                
                 // 最適化されたDataURLを生成
                 const optimizedDataUrl = canvas.toDataURL('image/jpeg', quality);
                 
@@ -433,6 +448,158 @@ class PhotoManager {
         console.log('📐 Main photos: Auto-resized to 800x1200 (portrait)');
         console.log('🖼️ Gallery photos: Auto-resized to 300x200 (landscape)');
         console.log('💡 Tip: Upload any size - system handles optimization automatically!');
+    }
+
+    // ほぼグレースケール処理を適用（ミニギャラリー用）
+    applyGrayscaleProcessing(ctx, width, height) {
+        try {
+            // 画像データを取得
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+            
+            // ピクセルごとに処理
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                
+                // 輝度ベースのグレースケール計算
+                const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+                
+                // ほぼグレースケール（わずかに元の色を残す）
+                const colorRetention = 0.15; // 15%の色を残す
+                const grayRetention = 0.85;   // 85%をグレースケール
+                
+                data[i]     = Math.round(luminance * grayRetention + r * colorRetention);
+                data[i + 1] = Math.round(luminance * grayRetention + g * colorRetention);
+                data[i + 2] = Math.round(luminance * grayRetention + b * colorRetention);
+                
+                // アルファ値はそのまま
+                // data[i + 3] はそのまま
+            }
+            
+            // 処理済み画像データを適用
+            ctx.putImageData(imageData, 0, 0);
+            
+        } catch (error) {
+            console.log('⚠️ Grayscale processing skipped:', error.message);
+        }
+    }
+
+    // ミニギャラリーのホバーエフェクトを設定（グレースケール⇄オリジナル色）
+    setupMiniGalleryHoverEffect(imgElement, photoSrc) {
+        let grayscaleImageSrc = null;
+        let originalColorSrc = null;
+        let isHovering = false;
+
+        // ホバー開始時（グレースケール → オリジナル色）
+        imgElement.addEventListener('mouseenter', async () => {
+            if (isHovering) return;
+            isHovering = true;
+
+            // グレースケール画像を保存（現在表示中）
+            if (!grayscaleImageSrc) {
+                grayscaleImageSrc = imgElement.src;
+            }
+
+            // オリジナル色画像をバックグラウンドで生成
+            if (!originalColorSrc) {
+                try {
+                    originalColorSrc = await this.generateProcessedImage(photoSrc, {
+                        targetWidth: 120,
+                        targetHeight: 90,
+                        quality: 0.7,
+                        applyColorProcessing: false  // ホバー時はオリジナル色
+                    });
+                } catch (error) {
+                    console.log('ホバー用オリジナル色画像の生成に失敗:', error);
+                    return;
+                }
+            }
+
+            // ホバー中であればオリジナル色画像に切り替え
+            if (isHovering && originalColorSrc) {
+                imgElement.src = originalColorSrc;
+            }
+        });
+
+        // ホバー終了時（オリジナル色 → グレースケール）
+        imgElement.addEventListener('mouseleave', () => {
+            isHovering = false;
+            if (grayscaleImageSrc) {
+                imgElement.src = grayscaleImageSrc;
+            }
+        });
+    }
+
+    // プロセス済み画像を生成（ホバーエフェクト用）
+    generateProcessedImage(src, options) {
+        return new Promise((resolve, reject) => {
+            const {
+                targetWidth = 120,
+                targetHeight = 90,
+                quality = 0.7,
+                applyColorProcessing = true
+            } = options;
+
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            
+            img.onload = () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    canvas.width = targetWidth;
+                    canvas.height = targetHeight;
+                    
+                    // アスペクト比計算とcover処理
+                    const sourceRatio = img.width / img.height;
+                    const targetRatio = targetWidth / targetHeight;
+                    
+                    let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+                    
+                    if (sourceRatio > targetRatio) {
+                        drawHeight = targetHeight;
+                        drawWidth = drawHeight * sourceRatio;
+                        offsetX = (targetWidth - drawWidth) / 2;
+                    } else {
+                        drawWidth = targetWidth;
+                        drawHeight = drawWidth / sourceRatio;
+                        offsetY = (targetHeight - drawHeight) / 2;
+                    }
+                    
+                    ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+                    
+                    // 色処理を適用
+                    if (applyColorProcessing === 'grayscale') {
+                        this.applyGrayscaleProcessing(ctx, targetWidth, targetHeight);
+                    } else if (applyColorProcessing === true) {
+                        this.applyColorProcessing(ctx, targetWidth, targetHeight);
+                    }
+                    
+                    // DataURLを生成
+                    const processedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                    resolve(processedDataUrl);
+                    
+                } catch (error) {
+                    reject(error);
+                }
+            };
+            
+            img.onerror = () => reject(new Error('Image load failed'));
+            img.src = src;
+        });
+    }
+
+    // 基本的な色処理を適用（メイン画像用）
+    applyColorProcessing(ctx, width, height) {
+        try {
+            // この関数は主にメイン画像用。ミニギャラリーにはapplyGrayscaleProcessingを使用
+            console.log('🎨 Color processing applied (basic implementation)');
+        } catch (error) {
+            console.log('⚠️ Color processing skipped:', error.message);
+        }
     }
 }
 
