@@ -19,13 +19,16 @@
             overflow-x: hidden;
         }
 
-        /* メインコンテナ - 3カラムレイアウト */
+        /* メインコンテナ - 3カラムレイアウト（固定高さ） */
         .main-container {
             display: grid;
             grid-template-columns: 280px 1fr 280px;
-            min-height: 100vh;
+            height: calc(100vh - 60px);
+            max-height: 700px;
+            min-height: 600px;
             background: #f5f5f5;
             position: relative;
+            overflow: hidden;
         }
 
         /* 左カラム - テキストエリア */
@@ -33,6 +36,8 @@
             background: #f5f5f5;
             padding: 40px 20px 20px 20px;
             position: relative;
+            overflow-y: auto;
+            height: 100%;
         }
 
         /* ロゴエリア */
@@ -181,6 +186,8 @@
             color: #fff;
             padding: 20px;
             position: relative;
+            overflow-y: auto;
+            height: 100%;
         }
 
         .news-header {
@@ -261,7 +268,10 @@
         @media (max-width: 1024px) {
             .main-container {
                 grid-template-columns: 1fr;
-                grid-template-rows: auto auto auto;
+                grid-template-rows: 200px 350px 200px;
+                height: auto;
+                max-height: none;
+                min-height: auto;
             }
             
             .infinity-symbol {
@@ -269,11 +279,20 @@
             }
             
             .center-column {
-                height: 400px;
+                height: 350px;
+            }
+            
+            .left-column, .right-column {
+                height: 200px;
+                overflow-y: auto;
             }
         }
 
         @media (max-width: 768px) {
+            .main-container {
+                grid-template-rows: 180px 300px 180px;
+            }
+            
             .infinity-symbol {
                 font-size: 80px;
             }
@@ -281,6 +300,33 @@
             .number {
                 font-size: 12px;
                 padding: 3px 6px;
+            }
+            
+            .center-column {
+                height: 300px;
+            }
+            
+            .left-column, .right-column {
+                height: 180px;
+            }
+            
+            .extr-text {
+                font-size: 32px;
+            }
+        }
+
+        /* 高解像度ディスプレイ用 */
+        @media (min-height: 900px) {
+            .main-container {
+                max-height: 800px;
+            }
+        }
+
+        /* 低解像度ディスプレイ用 */
+        @media (max-height: 600px) {
+            .main-container {
+                max-height: 500px;
+                min-height: 500px;
             }
         }
     </style>
