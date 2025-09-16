@@ -193,7 +193,8 @@ class PhotoManager {
             this.loadImageWithAutoResize(allPhotos[randomIndex], img, {
                 targetWidth: 120,
                 targetHeight: 90,
-                quality: 0.7
+                quality: 0.7,
+                applyColorProcessing: false  // ミニギャラリーは色処理なし
             });
         });
     }
@@ -342,7 +343,8 @@ class PhotoManager {
             targetWidth = 800,
             targetHeight = 600,
             quality = 0.8,
-            fitMode = 'cover' // cover, contain, fill
+            fitMode = 'cover', // cover, contain, fill
+            applyColorProcessing = true // デフォルトは色処理有効
         } = options;
 
         // 一時的にローディング表示
@@ -400,8 +402,10 @@ class PhotoManager {
                 // 画像描画
                 ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
                 
-                // 統一された色処理を適用（メイン・ギャラリー共通）
-                this.applyColorProcessing(ctx, targetWidth, targetHeight);
+                // 色処理を条件付きで適用（メイン画像のみ、ミニギャラリーは無効）
+                if (applyColorProcessing) {
+                    this.applyColorProcessing(ctx, targetWidth, targetHeight);
+                }
                 
                 // 最適化されたDataURLを生成
                 const optimizedDataUrl = canvas.toDataURL('image/jpeg', quality);

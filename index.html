@@ -221,6 +221,54 @@
             margin-bottom: 10px;
         }
 
+        /* 日記エントリー用スタイル */
+        .diary-entry {
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .diary-entry:last-child {
+            border-bottom: none;
+        }
+
+        .diary-meta {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 9px;
+            opacity: 0.7;
+        }
+
+        .diary-type {
+            margin-right: 8px;
+            font-size: 12px;
+        }
+
+        .diary-date {
+            font-family: Arial, sans-serif;
+        }
+
+        .diary-content-text {
+            font-size: 11px;
+            line-height: 1.4;
+            color: #fff;
+        }
+
+        .tanka-content {
+            font-style: italic;
+            text-align: center;
+            line-height: 1.6;
+            margin: 8px 0;
+        }
+
+        .loading-message {
+            text-align: center;
+            opacity: 0.7;
+            font-size: 11px;
+            padding: 20px 0;
+        }
+
         /* 青い円 - 右下 */
         .blue-circle-bottom {
             position: absolute;
@@ -341,15 +389,15 @@
             <div class="extr-text">SOGOODS.NET</div>
             
             <div class="text-content">
-                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+                <p>sogoods.netは、写真を通じて美しい瞬間を共有するフォトグラフィープラットフォームです。私たちは日常の中に潜む特別な光景や、心を動かす一瞬一瞬を大切にしています。</p>
                 
-                <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+                <p>このサイトでは、プロフェッショナルな色調整技術により、すべての写真が最高の品質で表示されます。明度、コントラスト、彩度を最適化し、各画像の魅力を最大限に引き出します。</p>
                 
-                <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</p>
+<p>Flickrとの統合により、リアルタイムで最新の作品をご覧いただけます。メイン画像とギャラリー画像は、統一された品質基準で処理され、一貫した美しい表現を実現しています。</p>
                 
-                <p>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.</p>
+                <p>写真は言葉を超えたコミュニケーション手段です。光と影、色と形が織りなす無限の表現を通じて、感動と発見の瞬間をお届けします。</p>
                 
-                <p>Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem.</p>
+                <p>sogoods.netで、写真の新しい可能性を探求し、視覚的な美しさの世界を一緒に体験してみませんか。すべての画像が物語を語り、見る人の心に響く作品となることを目指しています。</p>
             </div>
             
             <div class="blue-circle-left"></div>
@@ -405,18 +453,9 @@
                 <div class="news-title">TII</div>
             </div>
             
-            <div class="news-content">
-                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-                
-                <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-                
-                <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</p>
-                
-                <p>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet.</p>
-                
-                <p>At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident.</p>
-                
-                <p>Similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio.</p>
+            <div class="news-content" id="diary-content">
+                <!-- 日記コンテンツがJavaScriptで動的に読み込まれます -->
+                <div class="loading-message">📖 日記を読み込み中...</div>
             </div>
             
             <div class="blue-circle-bottom"></div>
