@@ -221,6 +221,54 @@
             margin-bottom: 10px;
         }
 
+        /* 日記エントリー用スタイル */
+        .diary-entry {
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .diary-entry:last-child {
+            border-bottom: none;
+        }
+
+        .diary-meta {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 9px;
+            opacity: 0.7;
+        }
+
+        .diary-type {
+            margin-right: 8px;
+            font-size: 12px;
+        }
+
+        .diary-date {
+            font-family: Arial, sans-serif;
+        }
+
+        .diary-content-text {
+            font-size: 11px;
+            line-height: 1.4;
+            color: #fff;
+        }
+
+        .tanka-content {
+            font-style: italic;
+            text-align: center;
+            line-height: 1.6;
+            margin: 8px 0;
+        }
+
+        .loading-message {
+            text-align: center;
+            opacity: 0.7;
+            font-size: 11px;
+            padding: 20px 0;
+        }
+
         /* 青い円 - 右下 */
         .blue-circle-bottom {
             position: absolute;
@@ -405,18 +453,9 @@
                 <div class="news-title">TII</div>
             </div>
             
-            <div class="news-content">
-                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-                
-                <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-                
-                <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</p>
-                
-                <p>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet.</p>
-                
-                <p>At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident.</p>
-                
-                <p>Similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio.</p>
+            <div class="news-content" id="diary-content">
+                <!-- 日記コンテンツがJavaScriptで動的に読み込まれます -->
+                <div class="loading-message">📖 日記を読み込み中...</div>
             </div>
             
             <div class="blue-circle-bottom"></div>

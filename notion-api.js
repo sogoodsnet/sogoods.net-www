@@ -204,6 +204,94 @@ class NotionAPI {
     }
 
     /**
+     * 日記コンテンツを右カラムに表示
+     */
+    async renderDiary(containerId = 'diary-content') {
+        const container = document.getElementById(containerId);
+        if (!container) {
+            console.log('日記コンテナが見つかりません');
+            return;
+        }
+
+        try {
+            console.log('📖 日記コンテンツを読み込み中...');
+            const articles = await this.fetchArticles(8);
+            
+            // 日記・記事・短歌のコンテンツを抽出
+            const diaryContent = articles.filter(item => 
+                ['diary', 'article', 'tanka', 'event', 'news'].includes(item.type)
+            ).slice(0, 6);
+
+            let html = '';
+            
+            diaryContent.forEach(item => {
+                const formattedContent = this.formatDiaryContent(item.content, item.type);
+                const typeIcon = this.getTypeIcon(item.type);
+                
+                html += `
+                    <div class="diary-entry">
+                        <div class="diary-meta">
+                            <span class="diary-type">${typeIcon}</span>
+                            <span class="diary-date">${item.date}</span>
+                        </div>
+                        <div class="diary-content-text">
+                            ${formattedContent}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            console.log('📖 日記コンテンツの読み込み完了');
+
+        } catch (error) {
+            console.error('日記読み込みエラー:', error);
+            container.innerHTML = `
+                <div class="diary-entry">
+                    <p>今日は新しい撮影スポットを探索しました。光と影が織りなす美しい瞬間を捉えることができ、写真の持つ無限の可能性を感じています。</p>
+                </div>
+                <div class="diary-entry">
+                    <p>色彩豊かな夕焼けが空を染める時間帯。自然が見せる芸術的な瞬間に心を奪われました。カメラを通して世界を見ることの喜びを再確認しています。</p>
+                </div>
+                <div class="diary-entry">
+                    <p>街の小さなカフェで出会った光景。日常に隠れている特別な瞬間を見つけ、それを写真に残すことの大切さを感じました。</p>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * 日記用のコンテンツフォーマット
+     */
+    formatDiaryContent(content, type) {
+        if (type === 'tanka') {
+            // 短歌の場合は改行を保持し、スタイルを調整
+            return `<div class="tanka-content">${content.replace(/\n/g, '<br>')}</div>`;
+        }
+        
+        // 日記の場合は適度な長さで切り詰め
+        const maxLength = 120;
+        if (content.length > maxLength) {
+            return content.substring(0, maxLength) + '...';
+        }
+        return content;
+    }
+
+    /**
+     * タイプに応じたアイコンを取得
+     */
+    getTypeIcon(type) {
+        const icons = {
+            diary: '📔',
+            article: '📝',
+            tanka: '🌸',
+            event: '📅',
+            news: '📰'
+        };
+        return icons[type] || '📖';
+    }
+
+    /**
      * コンテンツタイプに応じてフォーマット
      */
     formatContent(content, type) {
@@ -226,9 +314,13 @@ window.notionAPI = new NotionAPI({
     useFallback: true // 現在はサンプルデータを使用
 });
 
-// ページ読み込み時にニュースを表示
+// ページ読み込み時に日記とニュースを表示
 document.addEventListener('DOMContentLoaded', () => {
     if (window.notionAPI) {
+        // 右カラムに日記を表示
+        window.notionAPI.renderDiary('diary-content');
+        
+        // 他の場所にニュースを表示（存在する場合）
         window.notionAPI.renderNews('news-container');
     }
 });
