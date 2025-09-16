@@ -448,24 +448,17 @@ class ImageDropHandler {
         this.checkDropPermission();
     }
 
-    // キーシーケンス監視
+    // キーシーケンス監視（簡素化）
     setupKeyListener() {
         document.addEventListener('keydown', (e) => {
-            // Ctrl+Shift+A で管理者モード切り替え
-            if (e.ctrlKey && e.shiftKey && e.key === 'A') {
-                e.preventDefault();
-                this.showAdminPrompt();
-                return;
-            }
-
-            // 秘密のキーシーケンス 'sogoods' 監視
+            // 秘密のキーシーケンス 'sogoods' 監視（緊急用）
             this.keySequence.push(e.key.toLowerCase());
             if (this.keySequence.length > this.secretKeys.length) {
                 this.keySequence.shift();
             }
 
             if (this.keySequence.join('') === this.secretKeys.join('')) {
-                console.log('🔑 Secret key sequence detected!');
+                console.log('🔑 Emergency key sequence detected!');
                 this.showAdminPrompt();
                 this.keySequence = [];
             }
@@ -476,6 +469,9 @@ class ImageDropHandler {
     setupAuthSystem() {
         // 管理者モード表示インジケータを追加
         this.createAdminIndicator();
+        
+        // 隠しログインボタンを追加
+        this.createHiddenLoginButton();
         
         // localStorage から認証状態を復元
         const savedAuth = localStorage.getItem('sogoods_admin_session');
@@ -541,8 +537,52 @@ class ImageDropHandler {
         alert('🔒 管理者モードを終了しました');
     }
 
-    // 管理者インジケータの作成
+    // 隠しログインボタンの作成
+    createHiddenLoginButton() {
+        const hiddenButton = document.createElement('div');
+        hiddenButton.id = 'hidden-admin-btn';
+        hiddenButton.style.cssText = `
+            position: fixed;
+            bottom: 5px;
+            left: 5px;
+            width: 15px;
+            height: 15px;
+            background: transparent;
+            cursor: pointer;
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        `;
+        
+        // ホバー時にうっすら表示
+        hiddenButton.addEventListener('mouseenter', () => {
+            hiddenButton.style.opacity = '0.1';
+            hiddenButton.style.background = '#2196F3';
+        });
+        
+        hiddenButton.addEventListener('mouseleave', () => {
+            hiddenButton.style.opacity = '0';
+            hiddenButton.style.background = 'transparent';
+        });
+        
+        hiddenButton.onclick = () => {
+            console.log('🔑 Hidden admin button clicked');
+            this.showAdminPrompt();
+        };
+        
+        // ダブルクリックでも反応
+        hiddenButton.addEventListener('dblclick', () => {
+            console.log('🔑 Hidden admin button double-clicked');
+            this.showAdminPrompt();
+        });
+        
+        document.body.appendChild(hiddenButton);
+        this.hiddenButton = hiddenButton;
+    }
+
+    // 隠し管理者ボタンの作成
     createAdminIndicator() {
+        // メインの管理者ステータス表示
         const indicator = document.createElement('div');
         indicator.id = 'admin-indicator';
         indicator.style.cssText = `
@@ -564,6 +604,62 @@ class ImageDropHandler {
         indicator.onclick = () => this.showAdminPrompt();
         document.body.appendChild(indicator);
         this.adminIndicator = indicator;
+        
+        // 隠しログインボタン（目立たない場所に）
+        this.createHiddenLoginButton();
+    }
+
+    // 隠しログインボタンの作成
+    createHiddenLoginButton() {
+        const hiddenButton = document.createElement('div');
+        hiddenButton.id = 'hidden-admin-btn';
+        hiddenButton.style.cssText = `
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            width: 20px;
+            height: 20px;
+            background: rgba(200, 200, 200, 0.1);
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 1000;
+            transition: all 0.2s ease;
+            opacity: 0.1;
+            border: 1px solid rgba(200, 200, 200, 0.2);
+        `;
+        
+        // ホバー時に少し目立つように
+        hiddenButton.addEventListener('mouseenter', () => {
+            hiddenButton.style.opacity = '0.4';
+            hiddenButton.style.background = 'rgba(33, 150, 243, 0.3)';
+            hiddenButton.style.transform = 'scale(1.2)';
+        });
+        
+        hiddenButton.addEventListener('mouseleave', () => {
+            hiddenButton.style.opacity = '0.1';
+            hiddenButton.style.background = 'rgba(200, 200, 200, 0.1)';
+            hiddenButton.style.transform = 'scale(1)';
+        });
+        
+        // クリックで管理者ログイン
+        hiddenButton.addEventListener('click', () => {
+            this.showAdminPrompt();
+        });
+        
+        // ダブルクリックで更にわかりやすく
+        hiddenButton.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            hiddenButton.style.background = 'rgba(33, 150, 243, 0.8)';
+            setTimeout(() => {
+                hiddenButton.style.background = 'rgba(200, 200, 200, 0.1)';
+            }, 200);
+        });
+        
+        // ツールチップ（ホバー時のヒント）
+        hiddenButton.title = 'Admin';
+        
+        document.body.appendChild(hiddenButton);
+        this.hiddenButton = hiddenButton;
     }
 
     // インジケータ更新
@@ -574,17 +670,31 @@ class ImageDropHandler {
             this.adminIndicator.innerHTML = '🔓 管理者モード | クリックでログアウト';
             this.adminIndicator.style.display = 'block';
             this.adminIndicator.style.background = 'rgba(33, 150, 243, 0.9)';
+            
+            // 隠しボタンも管理者モード表示に
+            if (this.hiddenButton) {
+                this.hiddenButton.style.background = 'rgba(33, 150, 243, 0.4)';
+                this.hiddenButton.style.opacity = '0.6';
+                this.hiddenButton.title = 'Admin (Logged in) - Click to logout';
+            }
         } else {
-            this.adminIndicator.innerHTML = '🔐 Ctrl+Shift+A で管理者ログイン';
+            this.adminIndicator.innerHTML = '🔐 左下の隠しボタンで管理者ログイン';
             this.adminIndicator.style.display = 'block';
             this.adminIndicator.style.background = 'rgba(0,0,0,0.6)';
+            
+            // 隠しボタンを通常状態に
+            if (this.hiddenButton) {
+                this.hiddenButton.style.background = 'rgba(200, 200, 200, 0.1)';
+                this.hiddenButton.style.opacity = '0.1';
+                this.hiddenButton.title = 'Admin Login (Hidden Button)';
+            }
             
             // 5秒後に非表示
             setTimeout(() => {
                 if (!this.isAdminMode) {
                     this.adminIndicator.style.display = 'none';
                 }
-            }, 5000);
+            }, 3000);
         }
     }
 
@@ -735,12 +845,12 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         window.photoManager.checkPhotoFolders();
         console.log('');
-        console.log('🔐 ADMIN FEATURES:');
-        console.log('   • Press Ctrl+Shift+A for admin login');
-        console.log('   • Or type "sogoods" (secret key sequence)');
+        console.log('🔐 ADMIN ACCESS:');
+        console.log('   • Hidden button: Bottom-left corner (subtle gray circle)');
+        console.log('   • Emergency: Type "sogoods" for backup access');
         console.log('   • Password: sogoods2024');
-        console.log('   • After login: Drag & Drop enabled for 24 hours');
+        console.log('   • Session: 24-hour auto-login after authentication');
         console.log('📱 Auto-resize: Upload ANY size - system optimizes automatically');
-        console.log('🔒 Security: Only admins can upload, visitors can only view');
+        console.log('🔒 Security: Only authenticated admins can upload photos');
     }, 2000);
 });
