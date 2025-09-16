@@ -436,21 +436,217 @@ class PhotoManager {
     }
 }
 
-// 追加: ドラッグ&ドロップ自動リサイズ機能
+// 追加: 管理者認証付きドラッグ&ドロップ機能
 class ImageDropHandler {
     constructor(photoManager) {
         this.photoManager = photoManager;
+        this.isAdminMode = false;
+        this.adminPassword = 'sogoods2024'; // 本番では変更してください
+        this.keySequence = [];
+        this.secretKeys = ['s', 'o', 'g', 'o', 'o', 'd', 's']; // sogoods
+        this.setupKeyListener();
+        this.setupAuthSystem();
+        this.checkDropPermission();
+    }
+
+    // キーシーケンス監視
+    setupKeyListener() {
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Shift+A で管理者モード切り替え
+            if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+                e.preventDefault();
+                this.showAdminPrompt();
+                return;
+            }
+
+            // 秘密のキーシーケンス 'sogoods' 監視
+            this.keySequence.push(e.key.toLowerCase());
+            if (this.keySequence.length > this.secretKeys.length) {
+                this.keySequence.shift();
+            }
+
+            if (this.keySequence.join('') === this.secretKeys.join('')) {
+                console.log('🔑 Secret key sequence detected!');
+                this.showAdminPrompt();
+                this.keySequence = [];
+            }
+        });
+    }
+
+    // 管理者認証システム
+    setupAuthSystem() {
+        // 管理者モード表示インジケータを追加
+        this.createAdminIndicator();
+        
+        // localStorage から認証状態を復元
+        const savedAuth = localStorage.getItem('sogoods_admin_session');
+        if (savedAuth) {
+            const session = JSON.parse(savedAuth);
+            const now = new Date().getTime();
+            
+            // セッションが24時間以内なら自動ログイン
+            if (now - session.timestamp < 24 * 60 * 60 * 1000) {
+                this.isAdminMode = true;
+                this.updateAdminIndicator();
+                console.log('🔐 Admin session restored');
+            }
+        }
+    }
+
+    // 管理者プロンプト表示
+    showAdminPrompt() {
+        if (this.isAdminMode) {
+            // すでに管理者モードの場合はログアウト
+            this.logout();
+            return;
+        }
+
+        const password = prompt('🔐 管理者パスワードを入力してください:\n\n💡 ヒント: Ctrl+Shift+A または "sogoods" キーシーケンスでも開けます');
+        
+        if (password === this.adminPassword) {
+            this.login();
+        } else if (password !== null) {
+            alert('❌ パスワードが違います');
+            console.log('🚫 Admin authentication failed');
+        }
+    }
+
+    // ログイン処理
+    login() {
+        this.isAdminMode = true;
+        
+        // セッション保存（24時間）
+        const session = {
+            timestamp: new Date().getTime(),
+            user: 'admin'
+        };
+        localStorage.setItem('sogoods_admin_session', JSON.stringify(session));
+        
+        this.setupDropZones();
+        this.updateAdminIndicator();
+        
+        console.log('✅ Admin mode activated');
+        console.log('📤 Drag & Drop enabled for photo upload');
+        alert('✅ 管理者モードが有効になりました！\n📤 写真のドラッグ&ドロップが可能です');
+    }
+
+    // ログアウト処理
+    logout() {
+        this.isAdminMode = false;
+        localStorage.removeItem('sogoods_admin_session');
+        
+        this.removeDropZones();
+        this.updateAdminIndicator();
+        
+        console.log('🔒 Admin mode deactivated');
+        alert('🔒 管理者モードを終了しました');
+    }
+
+    // 管理者インジケータの作成
+    createAdminIndicator() {
+        const indicator = document.createElement('div');
+        indicator.id = 'admin-indicator';
+        indicator.style.cssText = `
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-family: Arial, sans-serif;
+            z-index: 1000;
+            display: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        `;
+        
+        indicator.onclick = () => this.showAdminPrompt();
+        document.body.appendChild(indicator);
+        this.adminIndicator = indicator;
+    }
+
+    // インジケータ更新
+    updateAdminIndicator() {
+        if (!this.adminIndicator) return;
+        
+        if (this.isAdminMode) {
+            this.adminIndicator.innerHTML = '🔓 管理者モード | クリックでログアウト';
+            this.adminIndicator.style.display = 'block';
+            this.adminIndicator.style.background = 'rgba(33, 150, 243, 0.9)';
+        } else {
+            this.adminIndicator.innerHTML = '🔐 Ctrl+Shift+A で管理者ログイン';
+            this.adminIndicator.style.display = 'block';
+            this.adminIndicator.style.background = 'rgba(0,0,0,0.6)';
+            
+            // 5秒後に非表示
+            setTimeout(() => {
+                if (!this.isAdminMode) {
+                    this.adminIndicator.style.display = 'none';
+                }
+            }, 5000);
+        }
+    }
+
+    // ドロップ権限チェック
+    checkDropPermission() {
+        if (!this.isAdminMode) {
+            console.log('🔒 Drop功能已禁用 - 需要管理员权限');
+            return;
+        }
         this.setupDropZones();
     }
 
     setupDropZones() {
+        if (!this.isAdminMode) return;
+        
         // メイン画像エリアをドロップゾーンに
         const centerColumn = document.querySelector('.center-column');
         if (centerColumn) {
+            // イベントリスナーが重複しないよう一度削除
+            this.removeDropZones();
+            
             centerColumn.addEventListener('dragover', this.handleDragOver.bind(this));
             centerColumn.addEventListener('drop', this.handleDrop.bind(this));
             centerColumn.addEventListener('dragenter', this.handleDragEnter.bind(this));
             centerColumn.addEventListener('dragleave', this.handleDragLeave.bind(this));
+            
+            // 視覚的な管理者モード表示
+            centerColumn.style.position = 'relative';
+            
+            if (!centerColumn.querySelector('.admin-overlay')) {
+                const overlay = document.createElement('div');
+                overlay.className = 'admin-overlay';
+                overlay.style.cssText = `
+                    position: absolute;
+                    top: 10px;
+                    left: 10px;
+                    background: rgba(33, 150, 243, 0.9);
+                    color: white;
+                    padding: 6px 10px;
+                    border-radius: 12px;
+                    font-size: 11px;
+                    font-family: Arial, sans-serif;
+                    z-index: 6;
+                    pointer-events: none;
+                `;
+                overlay.textContent = '📤 Admin: Drop enabled';
+                centerColumn.appendChild(overlay);
+            }
+        }
+    }
+
+    removeDropZones() {
+        const centerColumn = document.querySelector('.center-column');
+        if (centerColumn) {
+            // イベントリスナーを削除（新しいインスタンス作成時に重複を防ぐ）
+            const newCenterColumn = centerColumn.cloneNode(true);
+            centerColumn.parentNode.replaceChild(newCenterColumn, centerColumn);
+            
+            // 管理者オーバーレイを削除
+            const overlay = document.querySelector('.admin-overlay');
+            if (overlay) overlay.remove();
         }
     }
 
@@ -460,9 +656,14 @@ class ImageDropHandler {
     }
 
     handleDragEnter(e) {
+        if (!this.isAdminMode) {
+            console.log('🔒 Drop disabled - Admin login required');
+            return;
+        }
+        
         e.preventDefault();
         e.target.style.backgroundColor = 'rgba(33, 150, 243, 0.1)';
-        console.log('🎯 Drop zone activated - ready for image upload');
+        console.log('🎯 Admin drop zone activated - ready for image upload');
     }
 
     handleDragLeave(e) {
@@ -470,6 +671,12 @@ class ImageDropHandler {
     }
 
     async handleDrop(e) {
+        if (!this.isAdminMode) {
+            console.log('🔒 Drop blocked - Admin authentication required');
+            alert('🔒 管理者認証が必要です\n\nCtrl+Shift+A または "sogoods" と入力してログインしてください');
+            return;
+        }
+
         e.preventDefault();
         e.target.style.backgroundColor = '';
         
@@ -481,7 +688,7 @@ class ImageDropHandler {
             return;
         }
 
-        console.log(`📤 Processing ${imageFiles.length} dropped image(s)`);
+        console.log(`📤 Admin processing ${imageFiles.length} dropped image(s)`);
 
         for (const file of imageFiles) {
             await this.processDroppedImage(file);
@@ -529,7 +736,12 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         window.photoManager.checkPhotoFolders();
         console.log('');
-        console.log('🎯 BONUS: Drag & Drop images directly onto center area!');
+        console.log('🔐 ADMIN FEATURES:');
+        console.log('   • Press Ctrl+Shift+A for admin login');
+        console.log('   • Or type "sogoods" (secret key sequence)');
+        console.log('   • Password: sogoods2024');
+        console.log('   • After login: Drag & Drop enabled for 24 hours');
         console.log('📱 Auto-resize: Upload ANY size - system optimizes automatically');
+        console.log('🔒 Security: Only admins can upload, visitors can only view');
     }, 2000);
 });
