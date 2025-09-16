@@ -155,12 +155,12 @@ class PhotoManager {
             const randomIndex = Math.floor(Math.random() * allPhotos.length);
             const photoSrc = allPhotos[randomIndex];
             
-            // モノクロ調画像（色処理あり）をデフォルトで設定
+            // ほぼグレースケール画像をデフォルトで設定
             this.loadImageWithAutoResize(photoSrc, img, {
                 targetWidth: 120,
                 targetHeight: 90,
                 quality: 0.7,
-                applyColorProcessing: true  // デフォルトでモノクロ調
+                applyColorProcessing: 'grayscale'  // ほぼグレースケール
             });
             
             // ホバーエフェクト用のオリジナル色画像を準備
@@ -313,7 +313,7 @@ class PhotoManager {
             targetHeight = 600,
             quality = 0.8,
             fitMode = 'cover', // cover, contain, fill
-            applyColorProcessing = true // デフォルトは色処理有効
+            applyColorProcessing = true // デフォルトは色処理有効 ('grayscale', true, false)
         } = options;
 
         // 一時的にローディング表示
@@ -371,8 +371,10 @@ class PhotoManager {
                 // 画像描画
                 ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
                 
-                // 色処理を条件付きで適用（メイン画像のみ、ミニギャラリーは無効）
-                if (applyColorProcessing) {
+                // 色処理を条件付きで適用
+                if (applyColorProcessing === 'grayscale') {
+                    this.applyGrayscaleProcessing(ctx, targetWidth, targetHeight);
+                } else if (applyColorProcessing === true) {
                     this.applyColorProcessing(ctx, targetWidth, targetHeight);
                 }
                 
@@ -492,7 +494,9 @@ class PhotoManager {
                     ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
                     
                     // 色処理を適用
-                    if (applyColorProcessing) {
+                    if (applyColorProcessing === 'grayscale') {
+                        this.applyGrayscaleProcessing(ctx, targetWidth, targetHeight);
+                    } else if (applyColorProcessing === true) {
                         this.applyColorProcessing(ctx, targetWidth, targetHeight);
                     }
                     
@@ -609,6 +613,42 @@ class PhotoManager {
             b = hue2rgb(p, q, h - 1/3);
         }
         return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+    }
+
+    // ほぼグレースケール処理を適用（ミニギャラリー用）
+    applyGrayscaleProcessing(ctx, width, height) {
+        try {
+            // 画像データを取得
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+            
+            // ピクセルごとに処理
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                
+                // 輝度ベースのグレースケール計算
+                const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+                
+                // ほぼグレースケール（わずかに元の色を残す）
+                const colorRetention = 0.15; // 15%の色を残す
+                const grayRetention = 0.85;   // 85%をグレースケール
+                
+                data[i]     = Math.round(luminance * grayRetention + r * colorRetention);
+                data[i + 1] = Math.round(luminance * grayRetention + g * colorRetention);
+                data[i + 2] = Math.round(luminance * grayRetention + b * colorRetention);
+                
+                // アルファ値はそのまま
+                // data[i + 3] はそのまま
+            }
+            
+            // 処理済み画像データを適用
+            ctx.putImageData(imageData, 0, 0);
+            
+        } catch (error) {
+            console.log('⚠️ Grayscale processing skipped:', error.message);
+        }
     }
 
     // 画像の最適サイズを提案
