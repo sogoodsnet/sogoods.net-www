@@ -66,44 +66,67 @@ class PhotoManager {
         img.src = logoFiles[index];
     }
 
-    // 写真リストを動的に読み込み
+    // 写真リストを動的に読み込み (Flickr API使用)
     async loadPhotoList() {
         try {
-            // miiko フォルダの写真を取得
-            const miikoResponse = await this.fetchPhotoList('/photos/miiko');
-            this.miikoPhotos = miikoResponse || [];
+            console.log('📸 Loading photos from Flickr: sogoods');
             
-            // gallery フォルダの写真を取得
-            const galleryResponse = await this.fetchPhotoList('/photos/gallery');
-            this.galleryPhotos = galleryResponse || [];
+            // Flickrから写真を取得
+            const flickrPhotos = await this.fetchFlickrPhotos();
             
-            this.stats.totalPhotos = this.miikoPhotos.length + this.galleryPhotos.length;
-            
-            console.log(`📷 Loaded ${this.miikoPhotos.length} miiko photos, ${this.galleryPhotos.length} gallery photos`);
-            
-            // フォールバック用のサンプル写真
-            if (this.miikoPhotos.length === 0) {
+            if (flickrPhotos && flickrPhotos.length > 0) {
+                // メイン画像用とギャラリー用に分割
+                this.miikoPhotos = flickrPhotos.slice(0, Math.ceil(flickrPhotos.length * 0.7));
+                this.galleryPhotos = flickrPhotos.slice(Math.ceil(flickrPhotos.length * 0.7));
+                
+                this.stats.totalPhotos = flickrPhotos.length;
+                console.log(`📷 Loaded ${this.miikoPhotos.length} main photos, ${this.galleryPhotos.length} gallery photos from Flickr`);
+            } else {
+                // Flickr取得に失敗した場合のフォールバック
+                console.log('⚠️ Flickr load failed, using sample photos');
                 this.miikoPhotos = this.getSamplePhotos();
+                this.galleryPhotos = [];
                 this.stats.totalPhotos = this.miikoPhotos.length;
             }
             
         } catch (error) {
-            console.log('📁 Using sample photos (folder access failed)');
+            console.log('📁 Flickr error, using sample photos:', error.message);
             this.miikoPhotos = this.getSamplePhotos();
+            this.galleryPhotos = [];
             this.stats.totalPhotos = this.miikoPhotos.length;
         }
     }
 
-    // フォルダ内の画像ファイルリストを取得（実際の実装では要調整）
-    async fetchPhotoList(folderPath) {
-        // 注意: ブラウザから直接ファイルシステムにはアクセスできないため
-        // 実際の運用では以下のいずれかの方法を使用：
-        // 1. サーバーサイドAPI でファイルリスト提供
-        // 2. 事前定義されたファイルリスト
-        // 3. Notion API経由で管理
-        
-        // 現在はフォールバックとしてサンプル画像を使用
-        return [];
+    // Flickr APIから写真を取得
+    async fetchFlickrPhotos() {
+        try {
+            // Flickr Public Feed APIを使用（APIキー不要）
+            const flickrUserId = '200348020@N06'; // sogoods Flickr ID
+            const feedUrl = `https://api.flickr.com/services/feeds/photos_public.gne?id=${flickrUserId}&format=json&nojsoncallback=1`;
+            
+            const response = await fetch(feedUrl);
+            if (!response.ok) {
+                throw new Error(`Flickr API error: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.items && data.items.length > 0) {
+                // 画像URLを抽出して返却
+                return data.items.map(item => {
+                    // より高解像度の画像URLを生成
+                    const mediaUrl = item.media.m;
+                    // _m を _b に置換してより大きなサイズを取得
+                    return mediaUrl.replace('_m.jpg', '_b.jpg');
+                });
+            }
+            
+            return [];
+            
+        } catch (error) {
+            console.error('🚫 Flickr API error:', error);
+            return null;
+        }
     }
 
     // サンプル写真（フォルダが空の場合のフォールバック）
@@ -377,6 +400,9 @@ class PhotoManager {
                 // 画像描画
                 ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
                 
+                // 統一された色処理を適用（メイン・ギャラリー共通）
+                this.applyColorProcessing(ctx, targetWidth, targetHeight);
+                
                 // 最適化されたDataURLを生成
                 const optimizedDataUrl = canvas.toDataURL('image/jpeg', quality);
                 
@@ -401,6 +427,107 @@ class PhotoManager {
         };
         
         img.src = src;
+    }
+
+    // 統一された色処理を適用（メイン画像・ギャラリー画像共通）
+    applyColorProcessing(ctx, width, height) {
+        try {
+            // 画像データを取得
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+            
+            // 色調整パラメータ（統一設定）
+            const adjustments = {
+                brightness: 1.1,    // 明度 +10%
+                contrast: 1.15,     // コントラスト +15%
+                saturation: 1.2,    // 彩度 +20%
+                warmth: 1.05,       // 暖色調整 +5%
+                vibrance: 1.1       // 鮮やかさ +10%
+            };
+            
+            // ピクセルごとに処理
+            for (let i = 0; i < data.length; i += 4) {
+                let r = data[i];
+                let g = data[i + 1];
+                let b = data[i + 2];
+                
+                // 明度調整
+                r *= adjustments.brightness;
+                g *= adjustments.brightness;
+                b *= adjustments.brightness;
+                
+                // コントラスト調整
+                r = ((r / 255 - 0.5) * adjustments.contrast + 0.5) * 255;
+                g = ((g / 255 - 0.5) * adjustments.contrast + 0.5) * 255;
+                b = ((b / 255 - 0.5) * adjustments.contrast + 0.5) * 255;
+                
+                // HSL変換で彩度調整
+                const hsl = this.rgbToHsl(r, g, b);
+                hsl[1] *= adjustments.saturation; // 彩度
+                hsl[1] = Math.min(hsl[1], 1); // 彩度上限
+                
+                // 暖色調整（少し赤みを加える）
+                hsl[0] += (adjustments.warmth - 1) * 0.02; // 色相を暖色方向に微調整
+                
+                // RGB に戻す
+                const rgb = this.hslToRgb(hsl[0], hsl[1], hsl[2]);
+                
+                // 値の範囲を制限
+                data[i] = Math.max(0, Math.min(255, rgb[0]));
+                data[i + 1] = Math.max(0, Math.min(255, rgb[1]));
+                data[i + 2] = Math.max(0, Math.min(255, rgb[2]));
+            }
+            
+            // 処理済み画像データを適用
+            ctx.putImageData(imageData, 0, 0);
+            
+        } catch (error) {
+            console.log('⚠️ Color processing skipped:', error.message);
+        }
+    }
+
+    // RGB to HSL 変換
+    rgbToHsl(r, g, b) {
+        r /= 255; g /= 255; b /= 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        let h, s, l = (max + min) / 2;
+
+        if (max === min) {
+            h = s = 0;
+        } else {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+            h /= 6;
+        }
+        return [h, s, l];
+    }
+
+    // HSL to RGB 変換
+    hslToRgb(h, s, l) {
+        let r, g, b;
+        if (s === 0) {
+            r = g = b = l;
+        } else {
+            const hue2rgb = (p, q, t) => {
+                if (t < 0) t += 1;
+                if (t > 1) t -= 1;
+                if (t < 1/6) return p + (q - p) * 6 * t;
+                if (t < 1/2) return q;
+                if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                return p;
+            };
+            const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            const p = 2 * l - q;
+            r = hue2rgb(p, q, h + 1/3);
+            g = hue2rgb(p, q, h);
+            b = hue2rgb(p, q, h - 1/3);
+        }
+        return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
     }
 
     // 画像の最適サイズを提案

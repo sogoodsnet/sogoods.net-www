@@ -57,4 +57,4 @@ document.getElementById('main-logo').innerHTML =
 - **SVGファイル**: スケーラブルで最も推奨
 - **ファビコン**: 同じロゴでfavicon.icoも作成推奨
 - **ダークモード**: 将来的に白バージョンも準備
-- **アニメーション**: CSS/JSでホバー効果も可能
+- **アニメーション**: CSS/JSでホバー効果も可能# Logo Update Tue Sep 16 08:39:12 UTC 2025
