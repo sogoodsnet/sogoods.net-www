@@ -192,15 +192,15 @@ class PhotoManager {
             const randomIndex = Math.floor(Math.random() * allPhotos.length);
             const photoSrc = allPhotos[randomIndex];
             
-            // オリジナル画像（色処理なし）を設定
+            // モノクロ調画像（色処理あり）をデフォルトで設定
             this.loadImageWithAutoResize(photoSrc, img, {
                 targetWidth: 120,
                 targetHeight: 90,
                 quality: 0.7,
-                applyColorProcessing: false  // ミニギャラリーは色処理なし
+                applyColorProcessing: true  // デフォルトでモノクロ調
             });
             
-            // ホバーエフェクト用の色処理済み画像を準備
+            // ホバーエフェクト用のオリジナル色画像を準備
             this.setupMiniGalleryHoverEffect(img, photoSrc);
         });
     }
@@ -439,48 +439,48 @@ class PhotoManager {
         img.src = src;
     }
 
-    // ミニギャラリーのホバーエフェクトを設定
+    // ミニギャラリーのホバーエフェクトを設定（モノクロ⇄オリジナル色）
     setupMiniGalleryHoverEffect(imgElement, photoSrc) {
-        let originalSrc = null;
-        let processedSrc = null;
+        let monochromeImageSrc = null;
+        let originalColorSrc = null;
         let isHovering = false;
 
-        // ホバー開始時
+        // ホバー開始時（モノクロ → オリジナル色）
         imgElement.addEventListener('mouseenter', async () => {
             if (isHovering) return;
             isHovering = true;
 
-            // オリジナル画像を保存
-            if (!originalSrc) {
-                originalSrc = imgElement.src;
+            // モノクロ画像を保存（現在表示中）
+            if (!monochromeImageSrc) {
+                monochromeImageSrc = imgElement.src;
             }
 
-            // 色処理済み画像をバックグラウンドで生成
-            if (!processedSrc) {
+            // オリジナル色画像をバックグラウンドで生成
+            if (!originalColorSrc) {
                 try {
-                    processedSrc = await this.generateProcessedImage(photoSrc, {
+                    originalColorSrc = await this.generateProcessedImage(photoSrc, {
                         targetWidth: 120,
                         targetHeight: 90,
                         quality: 0.7,
-                        applyColorProcessing: true  // ホバー時は色処理有効
+                        applyColorProcessing: false  // ホバー時はオリジナル色
                     });
                 } catch (error) {
-                    console.log('ホバー用色処理画像の生成に失敗:', error);
+                    console.log('ホバー用オリジナル色画像の生成に失敗:', error);
                     return;
                 }
             }
 
-            // ホバー中であれば色処理済み画像に切り替え
-            if (isHovering && processedSrc) {
-                imgElement.src = processedSrc;
+            // ホバー中であればオリジナル色画像に切り替え
+            if (isHovering && originalColorSrc) {
+                imgElement.src = originalColorSrc;
             }
         });
 
-        // ホバー終了時
+        // ホバー終了時（オリジナル色 → モノクロ）
         imgElement.addEventListener('mouseleave', () => {
             isHovering = false;
-            if (originalSrc) {
-                imgElement.src = originalSrc;
+            if (monochromeImageSrc) {
+                imgElement.src = monochromeImageSrc;
             }
         });
     }
