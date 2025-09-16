@@ -225,6 +225,34 @@
             right: 40px;
         }
 
+        /* ミニ写真ギャラリー */
+        .mini-gallery {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: grid;
+            grid-template-columns: repeat(4, 60px);
+            gap: 8px;
+            z-index: 5;
+        }
+
+        .mini-image {
+            width: 60px;
+            height: 45px;
+            object-fit: cover;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .mini-image:hover {
+            transform: scale(1.1);
+            border-color: #2196F3;
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+        }
+
         /* レスポンシブデザイン */
         @media (max-width: 1024px) {
             .main-container {
@@ -311,6 +339,14 @@
                 <div class="number n22">17</div>
                 <div class="number n23">2</div>
                 <div class="number n24">47</div>
+            </div>
+            
+            <!-- ミニ写真ギャラリー -->
+            <div class="mini-gallery">
+                <img src="https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=100&h=75&fit=crop" alt="ミニ1" class="mini-image">
+                <img src="https://images.unsplash.com/photo-1583336663277-620dc1996580?w=100&h=75&fit=crop" alt="ミニ2" class="mini-image">
+                <img src="https://images.unsplash.com/photo-1571566882372-1598d88abd90?w=100&h=75&fit=crop" alt="ミニ3" class="mini-image">
+                <img src="https://images.unsplash.com/photo-1561948955-570b270e7c36?w=100&h=75&fit=crop" alt="ミニ4" class="mini-image">
             </div>
         </div>
 
