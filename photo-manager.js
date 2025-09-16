@@ -190,12 +190,18 @@ class PhotoManager {
         
         miniImages.forEach((img, index) => {
             const randomIndex = Math.floor(Math.random() * allPhotos.length);
-            this.loadImageWithAutoResize(allPhotos[randomIndex], img, {
+            const photoSrc = allPhotos[randomIndex];
+            
+            // オリジナル画像（色処理なし）を設定
+            this.loadImageWithAutoResize(photoSrc, img, {
                 targetWidth: 120,
                 targetHeight: 90,
                 quality: 0.7,
                 applyColorProcessing: false  // ミニギャラリーは色処理なし
             });
+            
+            // ホバーエフェクト用の色処理済み画像を準備
+            this.setupMiniGalleryHoverEffect(img, photoSrc);
         });
     }
 
@@ -431,6 +437,114 @@ class PhotoManager {
         };
         
         img.src = src;
+    }
+
+    // ミニギャラリーのホバーエフェクトを設定
+    setupMiniGalleryHoverEffect(imgElement, photoSrc) {
+        let originalSrc = null;
+        let processedSrc = null;
+        let isHovering = false;
+
+        // ホバー開始時
+        imgElement.addEventListener('mouseenter', async () => {
+            if (isHovering) return;
+            isHovering = true;
+
+            // オリジナル画像を保存
+            if (!originalSrc) {
+                originalSrc = imgElement.src;
+            }
+
+            // 色処理済み画像をバックグラウンドで生成
+            if (!processedSrc) {
+                try {
+                    processedSrc = await this.generateProcessedImage(photoSrc, {
+                        targetWidth: 120,
+                        targetHeight: 90,
+                        quality: 0.7,
+                        applyColorProcessing: true  // ホバー時は色処理有効
+                    });
+                } catch (error) {
+                    console.log('ホバー用色処理画像の生成に失敗:', error);
+                    return;
+                }
+            }
+
+            // ホバー中であれば色処理済み画像に切り替え
+            if (isHovering && processedSrc) {
+                imgElement.src = processedSrc;
+            }
+        });
+
+        // ホバー終了時
+        imgElement.addEventListener('mouseleave', () => {
+            isHovering = false;
+            if (originalSrc) {
+                imgElement.src = originalSrc;
+            }
+        });
+    }
+
+    // 色処理済み画像を生成する専用関数
+    generateProcessedImage(src, options = {}) {
+        return new Promise((resolve, reject) => {
+            const {
+                targetWidth = 120,
+                targetHeight = 90,
+                quality = 0.7,
+                applyColorProcessing = true
+            } = options;
+
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            
+            img.onload = () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    canvas.width = targetWidth;
+                    canvas.height = targetHeight;
+
+                    // 高品質リサイズ設定
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    
+                    // 画像描画（cover fitで中央クロップ）
+                    const sourceRatio = img.width / img.height;
+                    const targetRatio = targetWidth / targetHeight;
+                    
+                    let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+                    
+                    if (sourceRatio > targetRatio) {
+                        drawHeight = targetHeight;
+                        drawWidth = drawHeight * sourceRatio;
+                        offsetX = (targetWidth - drawWidth) / 2;
+                    } else {
+                        drawWidth = targetWidth;
+                        drawHeight = drawWidth / sourceRatio;
+                        offsetY = (targetHeight - drawHeight) / 2;
+                    }
+                    
+                    ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+                    
+                    // 色処理を適用
+                    if (applyColorProcessing) {
+                        this.applyColorProcessing(ctx, targetWidth, targetHeight);
+                    }
+                    
+                    // DataURLを生成
+                    const processedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                    resolve(processedDataUrl);
+                    
+                } catch (error) {
+                    reject(error);
+                }
+            };
+            
+            img.onerror = () => reject(new Error('Image load failed'));
+            img.src = src;
+        });
     }
 
     // 統一された色処理を適用（メイン画像・ギャラリー画像共通）
