@@ -26,6 +26,11 @@ class PhotoManager {
         this.setupRealtimeStats();
         this.loadStats();
         this.setupLogo();
+        
+        // デバッグモードでFlickr接続テスト
+        if (window.location.hostname.includes('localhost') || window.location.hostname.includes('e2b.dev')) {
+            setTimeout(() => this.testFlickrConnection(), 3000);
+        }
     }
 
     // ロゴの自動設定
@@ -66,43 +71,154 @@ class PhotoManager {
         img.src = logoFiles[index];
     }
 
-    // 写真リストを動的に読み込み
+    // 写真リストを動的に読み込み（Flickr API使用）
     async loadPhotoList() {
         try {
-            // miiko フォルダの写真を取得
-            const miikoResponse = await this.fetchPhotoList('/photos/miiko');
-            this.miikoPhotos = miikoResponse || [];
+            console.log('📸 Loading photos from Flickr: sogoods');
             
-            // gallery フォルダの写真を取得
-            const galleryResponse = await this.fetchPhotoList('/photos/gallery');
-            this.galleryPhotos = galleryResponse || [];
+            // Flickrから写真を取得
+            const flickrPhotos = await this.fetchFlickrPhotos();
             
-            this.stats.totalPhotos = this.miikoPhotos.length + this.galleryPhotos.length;
-            
-            console.log(`📷 Loaded ${this.miikoPhotos.length} miiko photos, ${this.galleryPhotos.length} gallery photos`);
-            
-            // フォールバック用のサンプル写真
-            if (this.miikoPhotos.length === 0) {
+            if (flickrPhotos && flickrPhotos.length > 0) {
+                // メイン画像用とギャラリー用に分割
+                this.miikoPhotos = flickrPhotos.slice(0, Math.ceil(flickrPhotos.length * 0.7));
+                this.galleryPhotos = flickrPhotos.slice(Math.ceil(flickrPhotos.length * 0.7));
+                
+                this.stats.totalPhotos = flickrPhotos.length;
+                console.log(`📷 Loaded ${this.miikoPhotos.length} main photos, ${this.galleryPhotos.length} gallery photos from Flickr`);
+            } else {
+                // Flickr取得に失敗した場合のフォールバック
+                console.log('⚠️ Flickr load failed, using sample photos');
                 this.miikoPhotos = this.getSamplePhotos();
+                this.galleryPhotos = [];
                 this.stats.totalPhotos = this.miikoPhotos.length;
             }
             
         } catch (error) {
-            console.log('📁 Using sample photos (folder access failed)');
+            console.warn('📁 Flickr API failed, using sample photos:', error.message);
             this.miikoPhotos = this.getSamplePhotos();
+            this.galleryPhotos = [];
             this.stats.totalPhotos = this.miikoPhotos.length;
         }
     }
 
-    // フォルダ内の画像ファイルリストを取得（実際の実装では要調整）
+    // Flickrの接続テスト用関数（デバッグ用）
+    async testFlickrConnection() {
+        console.log('🔍 Testing Flickr API connection...');
+        try {
+            const photos = await this.fetchFlickrPhotos();
+            if (photos && photos.length > 0) {
+                console.log(`✅ Flickr Test: Successfully retrieved ${photos.length} photos`);
+                console.log('📷 First photo URL:', photos[0]);
+                return true;
+            } else {
+                console.log('❌ Flickr Test: No photos retrieved');
+                return false;
+            }
+        } catch (error) {
+            console.log('❌ Flickr Test Error:', error);
+            return false;
+        }
+    }
+
+    // Flickr APIから写真を取得
+    async fetchFlickrPhotos() {
+        try {
+            // Flickr Public Feed APIを使用（API key不要）
+            // ユーザー名: sogoods のパブリックフィード（複数の形式を試行）
+            const flickrFeedUrls = [
+                'https://api.flickr.com/services/feeds/photos_public.gne?tags=sogoods&lang=en-us&format=json&jsoncallback=?',
+                'https://api.flickr.com/services/feeds/photos_public.gne?id=199896366@N07&lang=en-us&format=json&jsoncallback=?',
+                'https://api.flickr.com/services/feeds/photos_public.gne?id=sogoods&lang=en-us&format=json&jsoncallback=?'
+            ];
+            
+            let response = null;
+            for (const flickrFeedUrl of flickrFeedUrls) {
+                try {
+                    response = await this.fetchJsonp(flickrFeedUrl);
+                    if (response && response.items && response.items.length > 0) {
+                        console.log(`✅ Flickr API: Connected with URL ${flickrFeedUrl}`);
+                        break;
+                    }
+                } catch (error) {
+                    console.log(`⚠️ Flickr API: Failed with URL ${flickrFeedUrl}`);
+                    continue;
+                }
+            }
+            
+            if (response && response.items && response.items.length > 0) {
+                const photos = response.items.map(item => {
+                    // 高解像度画像URLを取得（_b サフィックス for large size）
+                    let imageUrl = item.media.m; // medium サイズ
+                    
+                    // より大きなサイズに変換
+                    if (imageUrl.includes('_m.jpg')) {
+                        imageUrl = imageUrl.replace('_m.jpg', '_b.jpg'); // large サイズ
+                    } else if (imageUrl.includes('_m.png')) {
+                        imageUrl = imageUrl.replace('_m.png', '_b.png');
+                    }
+                    
+                    return {
+                        url: imageUrl,
+                        title: item.title,
+                        description: item.description,
+                        link: item.link,
+                        published: item.published
+                    };
+                });
+                
+                console.log(`✅ Flickr API: Retrieved ${photos.length} photos from sogoods account`);
+                return photos.map(photo => photo.url); // URLのみを返す
+            } else {
+                throw new Error('No photos found in any Flickr feed');
+            }
+            
+        } catch (error) {
+            console.error('❌ Flickr API Error:', error);
+            return null;
+        }
+    }
+
+    // JSONPリクエストのヘルパー関数
+    async fetchJsonp(url) {
+        return new Promise((resolve, reject) => {
+            // JSONPコールバック関数名を生成
+            const callbackName = 'flickrCallback_' + Math.random().toString(36).substring(7);
+            
+            // グローバルコールバック関数を設定
+            window[callbackName] = (data) => {
+                // クリーンアップ
+                document.head.removeChild(script);
+                delete window[callbackName];
+                resolve(data);
+            };
+            
+            // scriptタグを作成してJSONPリクエスト実行
+            const script = document.createElement('script');
+            script.src = url.replace('jsoncallback=?', `jsoncallback=${callbackName}`);
+            script.onerror = () => {
+                // クリーンアップ
+                document.head.removeChild(script);
+                delete window[callbackName];
+                reject(new Error('JSONP request failed'));
+            };
+            
+            document.head.appendChild(script);
+            
+            // タイムアウト設定（10秒）
+            setTimeout(() => {
+                if (window[callbackName]) {
+                    document.head.removeChild(script);
+                    delete window[callbackName];
+                    reject(new Error('JSONP request timeout'));
+                }
+            }, 10000);
+        });
+    }
+
+    // フォルダ内の画像ファイルリストを取得（廃止予定 - Flickr APIに移行）
     async fetchPhotoList(folderPath) {
-        // 注意: ブラウザから直接ファイルシステムにはアクセスできないため
-        // 実際の運用では以下のいずれかの方法を使用：
-        // 1. サーバーサイドAPI でファイルリスト提供
-        // 2. 事前定義されたファイルリスト
-        // 3. Notion API経由で管理
-        
-        // 現在はフォールバックとしてサンプル画像を使用
+        // Flickr APIに移行したためこの関数は使用されません
         return [];
     }
 
