@@ -25,7 +25,7 @@ class PhotoManager {
         this.setupRandomDisplay();
         this.setupRealtimeStats();
         this.loadStats();
-        this.setupLogo();
+        // this.setupLogo(); // 無効化: HTMLで直接指定されたロゴを使用
         
         // デバッグモードでFlickr接続テスト
         if (window.location.hostname.includes('localhost') || window.location.hostname.includes('e2b.dev')) {
@@ -33,8 +33,13 @@ class PhotoManager {
         }
     }
 
-    // ロゴの自動設定
+    // ロゴの自動設定（無効化済み - HTML直接指定を使用）
     setupLogo() {
+        // 無効化: HTMLで直接指定されたhttps://sogoods.net/img/logo.pngを使用
+        console.log('🎨 Logo: Using HTML-specified URL (auto-detection disabled)');
+        return;
+        
+        /*
         const logoElement = document.getElementById('main-logo');
         if (!logoElement) return;
         
@@ -50,10 +55,15 @@ class PhotoManager {
         ];
         
         this.loadLogo(logoFiles, 0, logoElement);
+        */
     }
 
-    // ロゴファイルを順番に試行
+    // ロゴファイルを順番に試行（無効化済み）
     loadLogo(logoFiles, index, logoElement) {
+        // 無効化: HTML直接指定を使用
+        return;
+        
+        /*
         if (index >= logoFiles.length) {
             console.log('🎨 No logo file found, using text placeholder');
             return;
@@ -69,6 +79,7 @@ class PhotoManager {
             this.loadLogo(logoFiles, index + 1, logoElement);
         };
         img.src = logoFiles[index];
+        */
     }
 
     // 写真リストを動的に読み込み（Flickr API使用）
