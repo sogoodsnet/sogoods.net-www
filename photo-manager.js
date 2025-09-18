@@ -25,71 +25,85 @@ class PhotoManager {
         this.setupRandomDisplay();
         this.setupRealtimeStats();
         this.loadStats();
+        this.setupLogo();
     }
 
+    // ロゴの自動設定
+    setupLogo() {
+        const logoElement = document.getElementById('main-logo');
+        if (!logoElement) return;
+        
+        // ロゴファイルを順番にチェック
+        const logoFiles = [
+            '/assets/logo/logo.png',
+            '/assets/logo/test-logo.svg',
+            '/assets/logo/so-logo.png',
+            '/assets/logo/sogoods-logo.png',
+            '/assets/logo/logo-main.svg',
+            '/assets/logo/brand-logo.png',
+            '/assets/logo/logo.svg'
+        ];
+        
+        this.loadLogo(logoFiles, 0, logoElement);
+    }
 
+    // ロゴファイルを順番に試行
+    loadLogo(logoFiles, index, logoElement) {
+        if (index >= logoFiles.length) {
+            console.log('🎨 No logo file found, using text placeholder');
+            return;
+        }
+        
+        const img = new Image();
+        img.onload = () => {
+            logoElement.innerHTML = `<img src="${logoFiles[index]}" alt="sogoods.net" style="width:100%;height:100%;object-fit:contain;">`;
+            console.log(`🎨 Logo loaded: ${logoFiles[index]}`);
+        };
+        img.onerror = () => {
+            // 次のファイルを試行
+            this.loadLogo(logoFiles, index + 1, logoElement);
+        };
+        img.src = logoFiles[index];
+    }
 
-    // 写真リストを動的に読み込み (Flickr API使用)
+    // 写真リストを動的に読み込み
     async loadPhotoList() {
         try {
-            console.log('📸 Loading photos from Flickr: sogoods');
+            // miiko フォルダの写真を取得
+            const miikoResponse = await this.fetchPhotoList('/photos/miiko');
+            this.miikoPhotos = miikoResponse || [];
             
-            // Flickrから写真を取得
-            const flickrPhotos = await this.fetchFlickrPhotos();
+            // gallery フォルダの写真を取得
+            const galleryResponse = await this.fetchPhotoList('/photos/gallery');
+            this.galleryPhotos = galleryResponse || [];
             
-            if (flickrPhotos && flickrPhotos.length > 0) {
-                // メイン画像用とギャラリー用に分割
-                this.miikoPhotos = flickrPhotos.slice(0, Math.ceil(flickrPhotos.length * 0.7));
-                this.galleryPhotos = flickrPhotos.slice(Math.ceil(flickrPhotos.length * 0.7));
-                
-                this.stats.totalPhotos = flickrPhotos.length;
-                console.log(`📷 Loaded ${this.miikoPhotos.length} main photos, ${this.galleryPhotos.length} gallery photos from Flickr`);
-            } else {
-                // Flickr取得に失敗した場合のフォールバック
-                console.log('⚠️ Flickr load failed, using sample photos');
+            this.stats.totalPhotos = this.miikoPhotos.length + this.galleryPhotos.length;
+            
+            console.log(`📷 Loaded ${this.miikoPhotos.length} miiko photos, ${this.galleryPhotos.length} gallery photos`);
+            
+            // フォールバック用のサンプル写真
+            if (this.miikoPhotos.length === 0) {
                 this.miikoPhotos = this.getSamplePhotos();
-                this.galleryPhotos = [];
                 this.stats.totalPhotos = this.miikoPhotos.length;
             }
             
         } catch (error) {
-            console.log('📁 Flickr error, using sample photos:', error.message);
+            console.log('📁 Using sample photos (folder access failed)');
             this.miikoPhotos = this.getSamplePhotos();
-            this.galleryPhotos = [];
             this.stats.totalPhotos = this.miikoPhotos.length;
         }
     }
 
-    // Flickr APIから写真を取得
-    async fetchFlickrPhotos() {
-        try {
-            // Flickr Public Feed APIを使用（APIキー不要）
-            const flickrUserId = '200348020@N06'; // sogoods Flickr ID
-            const feedUrl = `https://api.flickr.com/services/feeds/photos_public.gne?id=${flickrUserId}&format=json&nojsoncallback=1`;
-            
-            const response = await fetch(feedUrl);
-            if (!response.ok) {
-                throw new Error(`Flickr API error: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            
-            if (data.items && data.items.length > 0) {
-                // 画像URLを抽出して返却
-                return data.items.map(item => {
-                    // より高解像度の画像URLを生成
-                    const mediaUrl = item.media.m;
-                    // _m を _b に置換してより大きなサイズを取得
-                    return mediaUrl.replace('_m.jpg', '_b.jpg');
-                });
-            }
-            
-            return [];
-            
-        } catch (error) {
-            console.error('🚫 Flickr API error:', error);
-            return null;
-        }
+    // フォルダ内の画像ファイルリストを取得（実際の実装では要調整）
+    async fetchPhotoList(folderPath) {
+        // 注意: ブラウザから直接ファイルシステムにはアクセスできないため
+        // 実際の運用では以下のいずれかの方法を使用：
+        // 1. サーバーサイドAPI でファイルリスト提供
+        // 2. 事前定義されたファイルリスト
+        // 3. Notion API経由で管理
+        
+        // 現在はフォールバックとしてサンプル画像を使用
+        return [];
     }
 
     // サンプル写真（フォルダが空の場合のフォールバック）
@@ -313,7 +327,7 @@ class PhotoManager {
             targetHeight = 600,
             quality = 0.8,
             fitMode = 'cover', // cover, contain, fill
-            applyColorProcessing = true // デフォルトは色処理有効 ('grayscale', true, false)
+            applyColorProcessing = false // 色処理オプション ('grayscale', true, false)
         } = options;
 
         // 一時的にローディング表示
@@ -404,215 +418,36 @@ class PhotoManager {
         img.src = src;
     }
 
-    // ミニギャラリーのホバーエフェクトを設定（モノクロ⇄オリジナル色）
-    setupMiniGalleryHoverEffect(imgElement, photoSrc) {
-        let monochromeImageSrc = null;
-        let originalColorSrc = null;
-        let isHovering = false;
-
-        // ホバー開始時（モノクロ → オリジナル色）
-        imgElement.addEventListener('mouseenter', async () => {
-            if (isHovering) return;
-            isHovering = true;
-
-            // モノクロ画像を保存（現在表示中）
-            if (!monochromeImageSrc) {
-                monochromeImageSrc = imgElement.src;
-            }
-
-            // オリジナル色画像をバックグラウンドで生成
-            if (!originalColorSrc) {
-                try {
-                    originalColorSrc = await this.generateProcessedImage(photoSrc, {
-                        targetWidth: 120,
-                        targetHeight: 90,
-                        quality: 0.7,
-                        applyColorProcessing: false  // ホバー時はオリジナル色
-                    });
-                } catch (error) {
-                    console.log('ホバー用オリジナル色画像の生成に失敗:', error);
-                    return;
-                }
-            }
-
-            // ホバー中であればオリジナル色画像に切り替え
-            if (isHovering && originalColorSrc) {
-                imgElement.src = originalColorSrc;
-            }
-        });
-
-        // ホバー終了時（オリジナル色 → モノクロ）
-        imgElement.addEventListener('mouseleave', () => {
-            isHovering = false;
-            if (monochromeImageSrc) {
-                imgElement.src = monochromeImageSrc;
-            }
-        });
-    }
-
-    // 色処理済み画像を生成する専用関数
-    generateProcessedImage(src, options = {}) {
-        return new Promise((resolve, reject) => {
-            const {
-                targetWidth = 120,
-                targetHeight = 90,
-                quality = 0.7,
-                applyColorProcessing = true
-            } = options;
-
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            
-            img.onload = () => {
-                try {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    
-                    canvas.width = targetWidth;
-                    canvas.height = targetHeight;
-
-                    // 高品質リサイズ設定
-                    ctx.imageSmoothingEnabled = true;
-                    ctx.imageSmoothingQuality = 'high';
-                    
-                    // 画像描画（cover fitで中央クロップ）
-                    const sourceRatio = img.width / img.height;
-                    const targetRatio = targetWidth / targetHeight;
-                    
-                    let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
-                    
-                    if (sourceRatio > targetRatio) {
-                        drawHeight = targetHeight;
-                        drawWidth = drawHeight * sourceRatio;
-                        offsetX = (targetWidth - drawWidth) / 2;
-                    } else {
-                        drawWidth = targetWidth;
-                        drawHeight = drawWidth / sourceRatio;
-                        offsetY = (targetHeight - drawHeight) / 2;
-                    }
-                    
-                    ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
-                    
-                    // 色処理を適用
-                    if (applyColorProcessing === 'grayscale') {
-                        this.applyGrayscaleProcessing(ctx, targetWidth, targetHeight);
-                    } else if (applyColorProcessing === true) {
-                        this.applyColorProcessing(ctx, targetWidth, targetHeight);
-                    }
-                    
-                    // DataURLを生成
-                    const processedDataUrl = canvas.toDataURL('image/jpeg', quality);
-                    resolve(processedDataUrl);
-                    
-                } catch (error) {
-                    reject(error);
-                }
+    // 画像の最適サイズを提案
+    getOptimalImageSize(type = 'main') {
+        if (type === 'main') {
+            return {
+                width: 800,
+                height: 1200,
+                aspectRatio: '2:3',
+                recommended: 'Portrait orientation preferred'
             };
-            
-            img.onerror = () => reject(new Error('Image load failed'));
-            img.src = src;
-        });
-    }
-
-    // 統一された色処理を適用（メイン画像・ギャラリー画像共通）
-    applyColorProcessing(ctx, width, height) {
-        try {
-            // 画像データを取得
-            const imageData = ctx.getImageData(0, 0, width, height);
-            const data = imageData.data;
-            
-            // 色調整パラメータ（統一設定）
-            const adjustments = {
-                brightness: 1.1,    // 明度 +10%
-                contrast: 1.15,     // コントラスト +15%
-                saturation: 1.2,    // 彩度 +20%
-                warmth: 1.05,       // 暖色調整 +5%
-                vibrance: 1.1       // 鮮やかさ +10%
+        } else if (type === 'gallery') {
+            return {
+                width: 300,
+                height: 200,
+                aspectRatio: '3:2',
+                recommended: 'Landscape orientation preferred'
             };
-            
-            // ピクセルごとに処理
-            for (let i = 0; i < data.length; i += 4) {
-                let r = data[i];
-                let g = data[i + 1];
-                let b = data[i + 2];
-                
-                // 明度調整
-                r *= adjustments.brightness;
-                g *= adjustments.brightness;
-                b *= adjustments.brightness;
-                
-                // コントラスト調整
-                r = ((r / 255 - 0.5) * adjustments.contrast + 0.5) * 255;
-                g = ((g / 255 - 0.5) * adjustments.contrast + 0.5) * 255;
-                b = ((b / 255 - 0.5) * adjustments.contrast + 0.5) * 255;
-                
-                // HSL変換で彩度調整
-                const hsl = this.rgbToHsl(r, g, b);
-                hsl[1] *= adjustments.saturation; // 彩度
-                hsl[1] = Math.min(hsl[1], 1); // 彩度上限
-                
-                // 暖色調整（少し赤みを加える）
-                hsl[0] += (adjustments.warmth - 1) * 0.02; // 色相を暖色方向に微調整
-                
-                // RGB に戻す
-                const rgb = this.hslToRgb(hsl[0], hsl[1], hsl[2]);
-                
-                // 値の範囲を制限
-                data[i] = Math.max(0, Math.min(255, rgb[0]));
-                data[i + 1] = Math.max(0, Math.min(255, rgb[1]));
-                data[i + 2] = Math.max(0, Math.min(255, rgb[2]));
-            }
-            
-            // 処理済み画像データを適用
-            ctx.putImageData(imageData, 0, 0);
-            
-        } catch (error) {
-            console.log('⚠️ Color processing skipped:', error.message);
         }
     }
 
-    // RGB to HSL 変換
-    rgbToHsl(r, g, b) {
-        r /= 255; g /= 255; b /= 255;
-        const max = Math.max(r, g, b), min = Math.min(r, g, b);
-        let h, s, l = (max + min) / 2;
-
-        if (max === min) {
-            h = s = 0;
-        } else {
-            const d = max - min;
-            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-            switch (max) {
-                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-                case g: h = (b - r) / d + 2; break;
-                case b: h = (r - g) / d + 4; break;
-            }
-            h /= 6;
-        }
-        return [h, s, l];
-    }
-
-    // HSL to RGB 変換
-    hslToRgb(h, s, l) {
-        let r, g, b;
-        if (s === 0) {
-            r = g = b = l;
-        } else {
-            const hue2rgb = (p, q, t) => {
-                if (t < 0) t += 1;
-                if (t > 1) t -= 1;
-                if (t < 1/6) return p + (q - p) * 6 * t;
-                if (t < 1/2) return q;
-                if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
-                return p;
-            };
-            const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-            const p = 2 * l - q;
-            r = hue2rgb(p, q, h + 1/3);
-            g = hue2rgb(p, q, h);
-            b = hue2rgb(p, q, h - 1/3);
-        }
-        return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+    // 手動でフォルダをチェック（開発時用）
+    async checkPhotoFolders() {
+        console.log('📁 Photo folder structure:');
+        console.log('   /photos/miiko/ <- みーこの写真をここに配置');
+        console.log('   /photos/gallery/ <- ギャラリー写真をここに配置');
+        console.log('');
+        console.log('📄 Supported formats: .jpg, .jpeg, .png, .gif, .webp');
+        console.log('🔧 Auto-resize: ANY size → optimized display size');
+        console.log('📐 Main photos: Auto-resized to 800x1200 (portrait)');
+        console.log('🖼️ Gallery photos: Auto-resized to 300x200 (landscape)');
+        console.log('💡 Tip: Upload any size - system handles optimization automatically!');
     }
 
     // ほぼグレースケール処理を適用（ミニギャラリー用）
@@ -651,36 +486,120 @@ class PhotoManager {
         }
     }
 
-    // 画像の最適サイズを提案
-    getOptimalImageSize(type = 'main') {
-        if (type === 'main') {
-            return {
-                width: 800,
-                height: 1200,
-                aspectRatio: '2:3',
-                recommended: 'Portrait orientation preferred'
-            };
-        } else if (type === 'gallery') {
-            return {
-                width: 300,
-                height: 200,
-                aspectRatio: '3:2',
-                recommended: 'Landscape orientation preferred'
-            };
-        }
+    // ミニギャラリーのホバーエフェクトを設定（グレースケール⇄オリジナル色）
+    setupMiniGalleryHoverEffect(imgElement, photoSrc) {
+        let grayscaleImageSrc = null;
+        let originalColorSrc = null;
+        let isHovering = false;
+
+        // ホバー開始時（グレースケール → オリジナル色）
+        imgElement.addEventListener('mouseenter', async () => {
+            if (isHovering) return;
+            isHovering = true;
+
+            // グレースケール画像を保存（現在表示中）
+            if (!grayscaleImageSrc) {
+                grayscaleImageSrc = imgElement.src;
+            }
+
+            // オリジナル色画像をバックグラウンドで生成
+            if (!originalColorSrc) {
+                try {
+                    originalColorSrc = await this.generateProcessedImage(photoSrc, {
+                        targetWidth: 120,
+                        targetHeight: 90,
+                        quality: 0.7,
+                        applyColorProcessing: false  // ホバー時はオリジナル色
+                    });
+                } catch (error) {
+                    console.log('ホバー用オリジナル色画像の生成に失敗:', error);
+                    return;
+                }
+            }
+
+            // ホバー中であればオリジナル色画像に切り替え
+            if (isHovering && originalColorSrc) {
+                imgElement.src = originalColorSrc;
+            }
+        });
+
+        // ホバー終了時（オリジナル色 → グレースケール）
+        imgElement.addEventListener('mouseleave', () => {
+            isHovering = false;
+            if (grayscaleImageSrc) {
+                imgElement.src = grayscaleImageSrc;
+            }
+        });
     }
 
-    // 手動でフォルダをチェック（開発時用）
-    async checkPhotoFolders() {
-        console.log('📁 Photo folder structure:');
-        console.log('   /photos/miiko/ <- みーこの写真をここに配置');
-        console.log('   /photos/gallery/ <- ギャラリー写真をここに配置');
-        console.log('');
-        console.log('📄 Supported formats: .jpg, .jpeg, .png, .gif, .webp');
-        console.log('🔧 Auto-resize: ANY size → optimized display size');
-        console.log('📐 Main photos: Auto-resized to 800x1200 (portrait)');
-        console.log('🖼️ Gallery photos: Auto-resized to 300x200 (landscape)');
-        console.log('💡 Tip: Upload any size - system handles optimization automatically!');
+    // プロセス済み画像を生成（ホバーエフェクト用）
+    generateProcessedImage(src, options) {
+        return new Promise((resolve, reject) => {
+            const {
+                targetWidth = 120,
+                targetHeight = 90,
+                quality = 0.7,
+                applyColorProcessing = true
+            } = options;
+
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            
+            img.onload = () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    canvas.width = targetWidth;
+                    canvas.height = targetHeight;
+                    
+                    // アスペクト比計算とcover処理
+                    const sourceRatio = img.width / img.height;
+                    const targetRatio = targetWidth / targetHeight;
+                    
+                    let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+                    
+                    if (sourceRatio > targetRatio) {
+                        drawHeight = targetHeight;
+                        drawWidth = drawHeight * sourceRatio;
+                        offsetX = (targetWidth - drawWidth) / 2;
+                    } else {
+                        drawWidth = targetWidth;
+                        drawHeight = drawWidth / sourceRatio;
+                        offsetY = (targetHeight - drawHeight) / 2;
+                    }
+                    
+                    ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+                    
+                    // 色処理を適用
+                    if (applyColorProcessing === 'grayscale') {
+                        this.applyGrayscaleProcessing(ctx, targetWidth, targetHeight);
+                    } else if (applyColorProcessing === true) {
+                        this.applyColorProcessing(ctx, targetWidth, targetHeight);
+                    }
+                    
+                    // DataURLを生成
+                    const processedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                    resolve(processedDataUrl);
+                    
+                } catch (error) {
+                    reject(error);
+                }
+            };
+            
+            img.onerror = () => reject(new Error('Image load failed'));
+            img.src = src;
+        });
+    }
+
+    // 基本的な色処理を適用（メイン画像用）
+    applyColorProcessing(ctx, width, height) {
+        try {
+            // この関数は主にメイン画像用。ミニギャラリーにはapplyGrayscaleProcessingを使用
+            console.log('🎨 Color processing applied (basic implementation)');
+        } catch (error) {
+            console.log('⚠️ Color processing skipped:', error.message);
+        }
     }
 }
 

@@ -19,11 +19,13 @@
             overflow-x: hidden;
         }
 
-        /* メインコンテナ - 3カラムレイアウト（固定高さ） */
+        /* メインコンテナ - 3カラムレイアウト（端末高さ100%対応） */
         .main-container {
             display: grid;
             grid-template-columns: 280px 1fr 280px;
             height: 100vh;
+            max-height: none;
+            min-height: 100vh;
             background: #f5f5f5;
             position: relative;
             overflow: hidden;
@@ -40,8 +42,8 @@
 
         /* ロゴエリア */
         .logo {
-            width: 70px;
-            height: 50px;
+            width: 110px;
+            height: 80px;
             margin-bottom: 30px;
             background: transparent;
             color: #000;
@@ -57,8 +59,8 @@
         .logo img {
             width: auto;
             height: auto;
-            max-width: 70px;
-            max-height: 50px;
+            max-width: 110px;
+            max-height: 80px;
             object-fit: contain;
         }
 
@@ -221,54 +223,6 @@
             margin-bottom: 10px;
         }
 
-        /* 日記エントリー用スタイル */
-        .diary-entry {
-            margin-bottom: 15px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .diary-entry:last-child {
-            border-bottom: none;
-        }
-
-        .diary-meta {
-            display: flex;
-            align-items: center;
-            margin-bottom: 6px;
-            font-size: 9px;
-            opacity: 0.7;
-        }
-
-        .diary-type {
-            margin-right: 8px;
-            font-size: 12px;
-        }
-
-        .diary-date {
-            font-family: Arial, sans-serif;
-        }
-
-        .diary-content-text {
-            font-size: 11px;
-            line-height: 1.4;
-            color: #fff;
-        }
-
-        .tanka-content {
-            font-style: italic;
-            text-align: center;
-            line-height: 1.6;
-            margin: 8px 0;
-        }
-
-        .loading-message {
-            text-align: center;
-            opacity: 0.7;
-            font-size: 11px;
-            padding: 20px 0;
-        }
-
         /* 青い円 - 右下 */
         .blue-circle-bottom {
             position: absolute;
@@ -302,7 +256,6 @@
             transition: all 0.3s ease;
             cursor: pointer;
             background: #f0f0f0;
-            position: relative;
         }
 
         .mini-image:hover {
@@ -315,10 +268,10 @@
         @media (max-width: 1024px) {
             .main-container {
                 grid-template-columns: 1fr;
-                grid-template-rows: 200px 350px 200px;
-                height: auto;
+                grid-template-rows: minmax(280px, 1fr) minmax(350px, auto) minmax(280px, 1fr);
+                height: 100vh;
                 max-height: none;
-                min-height: auto;
+                min-height: 100vh;
             }
             
             .infinity-symbol {
@@ -330,14 +283,19 @@
             }
             
             .left-column, .right-column {
-                height: 200px;
+                height: auto;
+                min-height: 280px;
                 overflow-y: auto;
+                padding: 20px;
+                box-sizing: border-box;
             }
         }
 
         @media (max-width: 768px) {
             .main-container {
-                grid-template-rows: 180px 300px 180px;
+                grid-template-rows: minmax(320px, 1fr) minmax(300px, auto) minmax(320px, 1fr);
+                height: 100vh;
+                min-height: 100vh;
             }
             
             .infinity-symbol {
@@ -354,26 +312,80 @@
             }
             
             .left-column, .right-column {
-                height: 180px;
+                height: auto;
+                min-height: 320px;
+                padding: 20px 15px;
             }
             
             .extr-text {
                 font-size: 32px;
+            }
+            
+            .text-content {
+                font-size: 14px;
+                line-height: 1.5;
+            }
+            
+            .diary-content {
+                font-size: 14px;
+                line-height: 1.5;
             }
         }
 
         /* 高解像度ディスプレイ用 */
         @media (min-height: 900px) {
             .main-container {
-                max-height: 800px;
+                height: 100vh;
+                min-height: 100vh;
+            }
+        }
+
+        /* 小さなスマートフォン用 */
+        @media (max-width: 480px) {
+            .main-container {
+                grid-template-rows: minmax(360px, 1fr) minmax(280px, auto) minmax(360px, 1fr);
+                height: 100vh;
+                min-height: 100vh;
+            }
+            
+            .left-column, .right-column {
+                min-height: 360px;
+                padding: 20px 10px;
+            }
+            
+            .center-column {
+                height: 280px;
+            }
+            
+            .extr-text {
+                font-size: 28px;
+                margin-bottom: 15px;
+            }
+            
+            .text-content, .diary-content {
+                font-size: 13px;
+                line-height: 1.4;
+            }
+            
+            .logo {
+                margin-bottom: 20px;
             }
         }
 
         /* 低解像度ディスプレイ用 */
         @media (max-height: 600px) {
             .main-container {
-                max-height: 500px;
-                min-height: 500px;
+                height: 100vh;
+                min-height: 100vh;
+            }
+            
+            .left-column, .right-column {
+                min-height: 200px;
+                font-size: 14px;
+            }
+            
+            .extr-text {
+                font-size: 36px;
             }
         }
     </style>
@@ -389,15 +401,15 @@
             <div class="extr-text">SOGOODS.NET</div>
             
             <div class="text-content">
-                <p>sogoods.netは、写真を通じて美しい瞬間を共有するフォトグラフィープラットフォームです。私たちは日常の中に潜む特別な光景や、心を動かす一瞬一瞬を大切にしています。</p>
+                <p>心躍る瞬間を、美しい写真とともに。sogoods.netは、日常の中に潜む特別な瞬間を切り取り、分かち合う場所です。</p>
                 
-                <p>このサイトでは、プロフェッショナルな色調整技術により、すべての写真が最高の品質で表示されます。明度、コントラスト、彩度を最適化し、各画像の魅力を最大限に引き出します。</p>
+                <p>ここでは、みーこと過ごす愛らしい時間や、旅先で出会った風景、ふとした瞬間の美しさを写真で綴っています。</p>
                 
-<p>Flickrとの統合により、リアルタイムで最新の作品をご覧いただけます。メイン画像とギャラリー画像は、統一された品質基準で処理され、一貫した美しい表現を実現しています。</p>
+                <p>写真一枚一枚に込められた想いや、その時の気持ち、そして見る人の心に響く何かを大切にしたいと思っています。</p>
                 
-                <p>写真は言葉を超えたコミュニケーション手段です。光と影、色と形が織りなす無限の表現を通じて、感動と発見の瞬間をお届けします。</p>
+                <p>時には静寂の中の美しさを、時には賑やかな日常の一コマを。様々な表情を見せる世界を、カメラを通して皆様にお届けします。</p>
                 
-                <p>sogoods.netで、写真の新しい可能性を探求し、視覚的な美しさの世界を一緒に体験してみませんか。すべての画像が物語を語り、見る人の心に響く作品となることを目指しています。</p>
+                <p>どうぞゆっくりと、写真たちが語る小さな物語をお楽しみください。きっと、あなたの心にも何かが響くことでしょう。</p>
             </div>
             
             <div class="blue-circle-left"></div>
@@ -454,8 +466,19 @@
             </div>
             
             <div class="news-content" id="diary-content">
-                <!-- 日記コンテンツがJavaScriptで動的に読み込まれます -->
-                <div class="loading-message">📖 日記を読み込み中...</div>
+                <!-- Notion APIから日記コンテンツが動的に読み込まれます -->
+                <div class="diary-entry">
+                    <h3>今日の出来事</h3>
+                    <p>朝の陽射しが心地よい一日でした。みーこが窓辺で気持ちよさそうに眠っている姿を見ていると、こちらも穏やかな気持ちになります。</p>
+                    
+                    <p>午後からは近くの公園を散歩。桜の木々がそろそろ新緑の季節を迎える準備をしているようで、春の訪れを感じました。</p>
+                    
+                    <p>カメラを持参して何枚か写真を撮影。光と影の美しいコントラストが印象的な一枚が撮れて満足しています。</p>
+                    
+                    <p>夕方はお気に入りのカフェでゆっくりとコーヒーを楽しみました。このような何気ない時間こそが、実は一番大切なのかもしれません。</p>
+                    
+                    <p>今度の週末は少し遠出をして、新しい風景に出会いに行こうと思っています。どんな瞬間に出会えるか、今から楽しみです。</p>
+                </div>
             </div>
             
             <div class="blue-circle-bottom"></div>
