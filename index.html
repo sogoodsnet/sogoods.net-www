@@ -99,6 +99,21 @@
             border-radius: 50%;
             top: 280px;
             left: 40px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .blue-circle-left:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(33, 150, 243, 0.5);
+        }
+
+        .blue-circle-left.disappearing {
+            opacity: 0;
+            transform: scale(0) rotate(360deg);
+            transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
         /* 中央カラム - メイン画像 */
@@ -137,6 +152,43 @@
             padding: 4px 8px;
             font-family: Arial, sans-serif;
             font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            pointer-events: auto;
+            user-select: none;
+        }
+
+        .number:hover {
+            background: rgba(33, 150, 243, 0.9);
+            color: white;
+            transform: scale(1.1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .number.tanka-mode {
+            background: rgba(33, 150, 243, 0.95);
+            color: white;
+            padding: 8px 12px;
+            font-size: 10px;
+            line-height: 1.3;
+            min-width: 120px;
+            white-space: pre-line;
+            text-align: center;
+            border-radius: 4px;
+            transform: scale(1.05);
+            z-index: 10;
+        }
+
+        .number.grabbed {
+            animation: grabEffect 0.5s ease-out;
+            z-index: 100;
+        }
+
+        @keyframes grabEffect {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3) rotate(5deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
             border-radius: 3px;
             font-size: 14px;
         }
@@ -202,6 +254,21 @@
             background: #2196F3;
             border-radius: 50%;
             margin-right: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .blue-circle-news:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(33, 150, 243, 0.5);
+        }
+
+        .blue-circle-news.disappearing {
+            opacity: 0;
+            transform: scale(0) rotate(360deg);
+            transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
         .news-title {
@@ -232,6 +299,21 @@
             border-radius: 50%;
             bottom: 100px;
             right: 40px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .blue-circle-bottom:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 25px rgba(33, 150, 243, 0.5);
+        }
+
+        .blue-circle-bottom.disappearing {
+            opacity: 0;
+            transform: scale(0) rotate(360deg);
+            transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
         /* ミニ写真ギャラリー */
@@ -401,15 +483,19 @@
             <div class="extr-text">SOGOODS.NET</div>
             
             <div class="text-content">
-                <p>心躍る瞬間を、美しい写真とともに。sogoods.netは、日常の中に潜む特別な瞬間を切り取り、分かち合う場所です。</p>
+                <p>暮らし 質素でも良い。住まいは広すぎず、技術は最新のものを取り入れ、道具は長く使えて愛着があり、社会とは投資を通じて関わり、仕事を通して接する。</p>
                 
-                <p>ここでは、みーこと過ごす愛らしい時間や、旅先で出会った風景、ふとした瞬間の美しさを写真で綴っています。</p>
+                <p>人生の半分は、誰かに止められたってしたい事をし、残りの半分は、もっとしたくてしょうがない事をする為にある。</p>
                 
-                <p>写真一枚一枚に込められた想いや、その時の気持ち、そして見る人の心に響く何かを大切にしたいと思っています。</p>
+                <p>自然の中に美しさを見いだし、思い出の中に楽しさを仕舞い、希望の中に夢を描き、現実の中に光を探す。私たちが、食べたいと思えるものを食べ、あなたと共に、美味しい食卓につき、工夫をこらし、シンプルにゆき着く。</p>
                 
-                <p>時には静寂の中の美しさを、時には賑やかな日常の一コマを。様々な表情を見せる世界を、カメラを通して皆様にお届けします。</p>
+                <p>自分たちの考え方や感性を発信し、快適な睡眠をとり、行きたいところに自由に行け、旅を通じて世界を知り、世界を通じて、日本を知る。四季を感じる住まいにすみ、都会の中でもなく、自然の中でもない、絶えず学びの中に身を投じ、情報の洪水から、一杯の清水をすくう。</p>
                 
-                <p>どうぞゆっくりと、写真たちが語る小さな物語をお楽しみください。きっと、あなたの心にも何かが響くことでしょう。</p>
+                <p>疎外される事無く、する事無く、差別を受ける事なく、差別をする事なく、後ろ指を指される事なく、指すことをせず、思想、信条、身分を隠す事なく、清廉潔白の中庸で在りたい。</p>
+                
+                <p>誰かに恋をして、誰かを愛して、誰かから好かれて、愛されて、決して一人ではなく、共感できる家族がいて、子供の考え方に感動し、無限の可能性を感じ、それこそが、生きる理由なのかもしれないと思う。</p>
+                
+                <p>万が一、明日死んでも未練はあるだろうが、今までの運命を受け入れて、良かったと思える僕でいたい。そうやって、生きてゆける様な私達でありたい。</p>
             </div>
             
             <div class="blue-circle-left"></div>
@@ -502,11 +588,199 @@
                 console.log('   📷 Photo Manager: Active');
                 console.log('   🔢 Real-time Stats: Active');
                 console.log('   🔄 Auto-refresh: 30s photos, 5s stats');
+                console.log('   🎭 Interactive Features: Active');
                 console.log('');
                 console.log('📁 Add photos to:');
                 console.log('   • /photos/miiko/ (main display)');
                 console.log('   • /photos/gallery/ (mini images)');
             }, 1000);
+
+            // 🎭 Interactive Features Initialization
+            initializeInteractiveFeatures();
+        });
+
+        // 🔵 Blue Circle Interaction System
+        function initializeInteractiveFeatures() {
+            console.log('🎭 Initializing interactive features...');
+            
+            // Blue circle disappearing effect
+            const blueCircles = document.querySelectorAll('.blue-circle-left, .blue-circle-news, .blue-circle-bottom');
+            blueCircles.forEach(circle => {
+                circle.addEventListener('click', function() {
+                    console.log('🔵 Blue circle clicked - disappearing...');
+                    this.classList.add('disappearing');
+                    
+                    // Remove element after animation
+                    setTimeout(() => {
+                        this.style.display = 'none';
+                    }, 600);
+                });
+            });
+
+            // 🔢 Number to Tanka transformation
+            initializeTankaSystem();
+        }
+
+        // 📝 Short Poem (Tanka) Collection System
+        const tankaCollection = [
+            "冬の朝\n窓辺に座る\n猫の瞳\n静寂を映し\n時が止まる",
+            "桜散り\n風に舞い踊る\n花びらよ\n心に残る\n春の記憶",
+            "夕暮れに\n街灯が点く\n道すがら\n影が長くて\n家路急ぐ",
+            "雨音が\n屋根を叩いて\n響くとき\n本を開いて\n静かに読む",
+            "星空を\n見上げる夜に\n思うこと\n小さな自分\n大きな宇宙",
+            "コーヒーの\n湯気が立ち上る\n朝のひと時\nゆっくりと\n今日を始める",
+            "写真の中\n笑顔が語る\n物語\n時を超えて\n心に響く",
+            "海の波\n砂浜に寄せる\nリズムに\n心も軽やか\n歩いてゆく",
+            "緑陰で\n風が頬を\n撫でていく\n木漏れ日踊り\n夏を感じる",
+            "月明かり\n窓から差して\n部屋を照らす\n静かな夜に\n思いを馳せる",
+            "朝露に\n光が宿り\nキラキラと\n新しい日の\n始まりを告げる",
+            "友と過ごす\n何気ない時間\nかけがえのない\n笑い声が\n記憶に刻まれる",
+            "本の頁\nめくるたびに\n新世界\n想像の翼\n広がってゆく",
+            "小鳥たち\n空を自由に\n飛び回り\n羨ましくて\n見上げる空",
+            "花壇には\n色とりどりの\n花が咲き\n蝶が舞い踊る\n午後のひととき",
+            "夕陽が\n空を染めて\nオレンジ色\n今日という日を\n美しく終える",
+            "雲が流れ\n形を変えて\n空の旅\n想像膨らむ\n青い午後",
+            "キッチンで\n料理する音\n心地よく\n家族の笑顔\n思い浮かべて",
+            "散歩道\n季節の移ろい\n感じつつ\n一歩一歩が\n人生の歩み",
+            "夜更けに\n静寂包まれ\n考える\n明日への希望\n胸に秘めて",
+            "古い写真\n思い出蘇り\n懐かしく\nあの日の自分に\n会いに行ける",
+            "雪景色\n真っ白な世界\n包まれて\n心も清らか\n新しい気持ち",
+            "温かい\n家族の団らん\n囲んで\n幸せだなと\n心から思う",
+            "新緑が\n風に揺れて\n輝いて\n命あふれる\n季節の始まり"
+        ];
+
+        let tankaIndex = 0;
+        const collectedTanka = [];
+
+        function initializeTankaSystem() {
+            console.log('📝 Initializing Tanka transformation system...');
+            
+            const numbers = document.querySelectorAll('.number');
+            
+            numbers.forEach((number, index) => {
+                let isTransformed = false;
+                let hoverTimeout;
+                
+                // Mouse enter - show tanka after delay
+                number.addEventListener('mouseenter', function() {
+                    if (isTransformed) return;
+                    
+                    hoverTimeout = setTimeout(() => {
+                        showTanka(this, index);
+                        isTransformed = true;
+                    }, 800); // 0.8秒後に短歌表示
+                });
+                
+                // Mouse leave - clear timeout if not transformed yet
+                number.addEventListener('mouseleave', function() {
+                    clearTimeout(hoverTimeout);
+                    
+                    if (isTransformed) {
+                        // Reset to number after some time
+                        setTimeout(() => {
+                            resetToNumber(this, index);
+                            isTransformed = false;
+                        }, 2000);
+                    }
+                });
+                
+                // Click - grab the tanka
+                number.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (isTransformed) {
+                        grabTanka(this, index);
+                    } else {
+                        // Quick transform on click
+                        clearTimeout(hoverTimeout);
+                        showTanka(this, index);
+                        isTransformed = true;
+                        
+                        setTimeout(() => {
+                            grabTanka(this, index);
+                        }, 500);
+                    }
+                });
+            });
+        }
+
+        function showTanka(element, index) {
+            const tanka = tankaCollection[tankaIndex % tankaCollection.length];
+            tankaIndex++;
+            
+            element.classList.add('tanka-mode');
+            element.textContent = tanka;
+            element.setAttribute('data-tanka', tanka);
+            
+            console.log(`📝 Showing tanka ${tankaIndex}: "${tanka.replace(/\n/g, ' / ')}"`);
+        }
+
+        function resetToNumber(element, index) {
+            element.classList.remove('tanka-mode');
+            element.textContent = element.getAttribute('data-original-number') || (index + 1);
+        }
+
+        function grabTanka(element, index) {
+            const tanka = element.getAttribute('data-tanka');
+            if (!tanka) return;
+            
+            element.classList.add('grabbed');
+            collectedTanka.push(tanka);
+            
+            console.log(`🤏 Grabbed tanka: "${tanka.replace(/\n/g, ' / ')}"`);
+            console.log(`📚 Collection now has ${collectedTanka.length} tanka(s)`);
+            
+            // Visual feedback
+            const grabMessage = document.createElement('div');
+            grabMessage.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(33, 150, 243, 0.9);
+                color: white;
+                padding: 10px 20px;
+                border-radius: 20px;
+                font-size: 14px;
+                z-index: 1000;
+                animation: fadeInOut 2s ease-out forwards;
+                pointer-events: none;
+            `;
+            
+            grabMessage.textContent = `📚 短歌をつかみました！ (${collectedTanka.length}首目)`;
+            document.body.appendChild(grabMessage);
+            
+            // Add fadeInOut animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes fadeInOut {
+                    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+                    20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                    80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            setTimeout(() => {
+                grabMessage.remove();
+                style.remove();
+            }, 2000);
+            
+            // Reset element
+            setTimeout(() => {
+                resetToNumber(element, index);
+                element.classList.remove('grabbed');
+            }, 1000);
+        }
+
+        // Store original numbers for reset
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                const numbers = document.querySelectorAll('.number');
+                numbers.forEach((number, index) => {
+                    number.setAttribute('data-original-number', number.textContent);
+                });
+            }, 100);
         });
     </script>
 </body>

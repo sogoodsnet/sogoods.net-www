@@ -11,6 +11,7 @@ class PhotoManager {
         this.uploadedPhotos = []; // アップロードされた写真を保存
         this.currentPhoto = null;
         this.updateInterval = null;
+        this.serverStorageEnabled = false; // サーバーサイドストレージフラグ
         this.stats = {
             totalPhotos: 0,
             viewCount: 0,
@@ -22,6 +23,9 @@ class PhotoManager {
     }
 
     async init() {
+        // サーバーサイドストレージ可用性チェック
+        await this.checkServerStorage();
+        
         // アップロード写真を復元
         this.loadUploadedPhotos();
         
@@ -86,24 +90,95 @@ class PhotoManager {
         */
     }
 
-    // 写真リストを動的に読み込み（Flickr API使用）
+    // サーバーサイドストレージの可用性をチェック
+    async checkServerStorage() {
+        try {
+            console.log('🔍 Checking server-side storage availability...');
+            
+            const response = await fetch('/api/photos/miiko', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
+                    this.serverStorageEnabled = true;
+                    console.log(`✅ Server storage available - ${result.totalCount} photos in /photos/miiko/`);
+                    
+                    // サーバーから既存の写真リストを取得してmiikoPhotosに統合
+                    if (result.photos && result.photos.length > 0) {
+                        const serverPhotos = result.photos.map(photo => photo.url);
+                        console.log('📁 Server photos:', serverPhotos.length);
+                    }
+                } else {
+                    console.log('⚠️ Server storage API unavailable');
+                }
+            } else {
+                console.log('⚠️ Server storage not responding');
+            }
+        } catch (error) {
+            console.log('⚠️ Server storage check failed:', error.message);
+        }
+
+        console.log(`📦 Storage mode: ${this.serverStorageEnabled ? 'Server-side (/photos/miiko/)' : 'Browser-only (localStorage)'}`);
+    }
+
+    // サーバーから写真リストを取得
+    async loadServerPhotos() {
+        if (!this.serverStorageEnabled) return [];
+
+        try {
+            const response = await fetch('/api/photos/miiko');
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success && result.photos) {
+                    console.log(`📁 Loaded ${result.photos.length} photos from server storage`);
+                    return result.photos.map(photo => photo.url);
+                }
+            }
+        } catch (error) {
+            console.error('❌ Failed to load server photos:', error);
+        }
+        
+        return [];
+    }
+
+    // 写真リストを動的に読み込み（Flickr API + サーバーストレージ）
     async loadPhotoList() {
         try {
-            console.log('📸 Loading photos from Flickr: sogoods');
+            console.log('📸 Loading photos from multiple sources...');
+            
+            // サーバーストレージから写真を取得
+            const serverPhotos = await this.loadServerPhotos();
             
             // Flickrから写真を取得
             const flickrPhotos = await this.fetchFlickrPhotos();
             
+            // 写真を統合
+            let allPhotos = [...serverPhotos];
+            
             if (flickrPhotos && flickrPhotos.length > 0) {
+                allPhotos = [...allPhotos, ...flickrPhotos];
+                console.log(`📷 Combined: ${serverPhotos.length} server + ${flickrPhotos.length} Flickr photos`);
+            } else if (serverPhotos.length === 0) {
+                // サーバーもFlickrも空の場合のフォールバック
+                console.log('⚠️ No server or Flickr photos, using sample photos');
+                allPhotos = this.getSamplePhotos();
+            }
+            
+            if (allPhotos.length > 0) {
                 // メイン画像用とギャラリー用に分割
-                this.miikoPhotos = flickrPhotos.slice(0, Math.ceil(flickrPhotos.length * 0.7));
-                this.galleryPhotos = flickrPhotos.slice(Math.ceil(flickrPhotos.length * 0.7));
+                this.miikoPhotos = allPhotos.slice(0, Math.ceil(allPhotos.length * 0.7));
+                this.galleryPhotos = allPhotos.slice(Math.ceil(allPhotos.length * 0.7));
                 
-                this.stats.totalPhotos = flickrPhotos.length + this.uploadedPhotos.length;
-                console.log(`📷 Loaded ${this.miikoPhotos.length} main photos, ${this.galleryPhotos.length} gallery photos from Flickr, ${this.uploadedPhotos.length} uploaded photos`);
+                this.stats.totalPhotos = allPhotos.length + this.uploadedPhotos.length;
+                console.log(`📷 Final: ${this.miikoPhotos.length} main photos, ${this.galleryPhotos.length} gallery photos, ${this.uploadedPhotos.length} uploaded photos`);
+                console.log(`📦 Storage: ${this.serverStorageEnabled ? 'Server + Browser' : 'Browser only'}`);
             } else {
-                // Flickr取得に失敗した場合のフォールバック
-                console.log('⚠️ Flickr load failed, using sample photos');
+                // 完全フォールバック
                 this.miikoPhotos = this.getSamplePhotos();
                 this.galleryPhotos = [];
                 this.stats.totalPhotos = this.miikoPhotos.length + this.uploadedPhotos.length;
@@ -1106,8 +1181,11 @@ class ImageDropHandler {
     updateAdminIndicator() {
         if (!this.adminIndicator) return;
         
+        // ストレージタイプの表示
+        const storageType = this.photoManager.serverStorageEnabled ? '📁 Server Storage' : '💾 Browser Storage';
+        
         if (this.isAdminMode) {
-            this.adminIndicator.innerHTML = '🔓 管理者モード | クリックでログアウト';
+            this.adminIndicator.innerHTML = `🔓 管理者モード (${storageType}) | クリックでログアウト`;
             this.adminIndicator.style.display = 'block';
             this.adminIndicator.style.background = 'rgba(33, 150, 243, 0.9)';
             
@@ -1115,10 +1193,10 @@ class ImageDropHandler {
             if (this.hiddenButton) {
                 this.hiddenButton.style.background = 'rgba(33, 150, 243, 0.4)';
                 this.hiddenButton.style.opacity = '0.6';
-                this.hiddenButton.title = 'Admin (Logged in) - Click to logout';
+                this.hiddenButton.title = `Admin (${storageType}) - Click to logout`;
             }
         } else {
-            this.adminIndicator.innerHTML = '🔐 左下の隠しボタンで管理者ログイン';
+            this.adminIndicator.innerHTML = `🔐 左下の隠しボタンで管理者ログイン (${storageType})`;
             this.adminIndicator.style.display = 'block';
             this.adminIndicator.style.background = 'rgba(0,0,0,0.6)';
             
@@ -1126,7 +1204,7 @@ class ImageDropHandler {
             if (this.hiddenButton) {
                 this.hiddenButton.style.background = 'rgba(200, 200, 200, 0.1)';
                 this.hiddenButton.style.opacity = '0.1';
-                this.hiddenButton.title = 'Admin Login (Hidden Button)';
+                this.hiddenButton.title = `Admin Login (${storageType})`;
             }
             
             // 5秒後に非表示
@@ -1286,6 +1364,12 @@ class ImageDropHandler {
     async processDroppedImage(file) {
         console.log(`🔄 Processing image: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
         
+        // サーバーサイドストレージ有効時の処理
+        if (this.photoManager.serverStorageEnabled) {
+            return this.uploadToServer(file);
+        }
+        
+        // 従来のブラウザベース処理
         return new Promise((resolve) => {
             const reader = new FileReader();
             
@@ -1329,6 +1413,75 @@ class ImageDropHandler {
             
             reader.readAsDataURL(file);
         });
+    }
+
+    // サーバーサイドアップロード機能
+    async uploadToServer(file) {
+        try {
+            console.log(`🌐 Uploading to server: ${file.name}`);
+            
+            const formData = new FormData();
+            formData.append('photo', file);
+            formData.append('password', 'sogoods2024');
+
+            const response = await fetch('/api/upload-photo', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            if (result.success) {
+                console.log(`✅ Server upload success: ${result.fileName}`);
+                console.log(`📁 Saved to: ${result.filePath}`);
+                console.log(`📏 Dimensions: ${result.dimensions.width}x${result.dimensions.height}`);
+                
+                // サーバーに保存された写真をmiikoPhotosに追加
+                this.photoManager.miikoPhotos.push(result.filePath);
+                
+                // メイン画像として表示
+                const mainImage = document.querySelector('.main-image');
+                if (mainImage) {
+                    mainImage.style.backgroundImage = `url('${result.filePath}')`;
+                    mainImage.style.backgroundSize = 'cover';
+                    mainImage.style.backgroundPosition = 'center';
+                }
+                
+                // 統計を更新
+                this.photoManager.updateStats();
+                
+                return result;
+            } else {
+                throw new Error(result.error || 'Upload failed');
+            }
+
+        } catch (error) {
+            console.error('❌ Server upload failed:', error);
+            
+            // サーバーアップロード失敗時は従来の方法にフォールバック
+            console.log('🔄 Falling back to browser storage...');
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.photoManager.addUploadedPhoto(e.target.result, file.name);
+                    
+                    const mainImage = document.querySelector('.main-image');
+                    if (mainImage) {
+                        this.photoManager.loadImageWithAutoResize(e.target.result, mainImage, {
+                            targetWidth: 800,
+                            targetHeight: 1200,
+                            quality: 0.8
+                        });
+                    }
+                    resolve();
+                };
+                reader.readAsDataURL(file);
+            });
+        }
     }
 }
 
