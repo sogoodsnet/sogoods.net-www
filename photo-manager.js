@@ -1101,14 +1101,24 @@ class ImageDropHandler {
             // イベントリスナーが重複しないよう一度削除
             this.removeDropZones();
             
-            centerColumn.addEventListener('dragover', this.handleDragOver.bind(this));
-            centerColumn.addEventListener('drop', this.handleDrop.bind(this));
-            centerColumn.addEventListener('dragenter', this.handleDragEnter.bind(this));
-            centerColumn.addEventListener('dragleave', this.handleDragLeave.bind(this));
+            // ハンドラーをバインドして保存
+            this.boundHandlers = {
+                dragOver: this.handleDragOver.bind(this),
+                drop: this.handleDrop.bind(this),
+                dragEnter: this.handleDragEnter.bind(this),
+                dragLeave: this.handleDragLeave.bind(this)
+            };
+            
+            // イベントリスナーを追加
+            centerColumn.addEventListener('dragover', this.boundHandlers.dragOver);
+            centerColumn.addEventListener('drop', this.boundHandlers.drop);
+            centerColumn.addEventListener('dragenter', this.boundHandlers.dragEnter);
+            centerColumn.addEventListener('dragleave', this.boundHandlers.dragLeave);
             
             // 視覚的な管理者モード表示
             centerColumn.style.position = 'relative';
             
+            // 管理者オーバーレイの追加
             if (!centerColumn.querySelector('.admin-overlay')) {
                 const overlay = document.createElement('div');
                 overlay.className = 'admin-overlay';
@@ -1128,19 +1138,28 @@ class ImageDropHandler {
                 overlay.textContent = '📤 Admin: Drop enabled';
                 centerColumn.appendChild(overlay);
             }
+            
+            console.log('✅ Drop zones setup completed');
         }
     }
 
     removeDropZones() {
         const centerColumn = document.querySelector('.center-column');
         if (centerColumn) {
-            // イベントリスナーを削除（新しいインスタンス作成時に重複を防ぐ）
-            const newCenterColumn = centerColumn.cloneNode(true);
-            centerColumn.parentNode.replaceChild(newCenterColumn, centerColumn);
+            // 既存のイベントリスナーを削除（より安全な方法）
+            if (this.boundHandlers) {
+                centerColumn.removeEventListener('dragover', this.boundHandlers.dragOver);
+                centerColumn.removeEventListener('drop', this.boundHandlers.drop);
+                centerColumn.removeEventListener('dragenter', this.boundHandlers.dragEnter);
+                centerColumn.removeEventListener('dragleave', this.boundHandlers.dragLeave);
+            }
             
             // 管理者オーバーレイを削除
-            const overlay = document.querySelector('.admin-overlay');
+            const overlay = centerColumn.querySelector('.admin-overlay');
             if (overlay) overlay.remove();
+            
+            // スタイルリセット
+            centerColumn.style.backgroundColor = '';
         }
     }
 
@@ -1165,6 +1184,11 @@ class ImageDropHandler {
     }
 
     async handleDrop(e) {
+        console.log('🎯 Drop event triggered!', {
+            isAdminMode: this.isAdminMode,
+            filesCount: e.dataTransfer?.files?.length || 0
+        });
+        
         if (!this.isAdminMode) {
             console.log('🔒 Drop blocked - Admin authentication required');
             alert('🔒 管理者認証が必要です\n\nCtrl+Shift+A または "sogoods" と入力してログインしてください');
@@ -1177,25 +1201,40 @@ class ImageDropHandler {
         const files = Array.from(e.dataTransfer.files);
         const imageFiles = files.filter(file => file.type.startsWith('image/'));
         
+        console.log('📁 Files analysis:', {
+            totalFiles: files.length,
+            imageFiles: imageFiles.length,
+            fileTypes: files.map(f => f.type)
+        });
+        
         if (imageFiles.length === 0) {
             console.log('❌ No image files found in drop');
+            alert('❌ 画像ファイルが見つかりません\n対応形式: JPG, PNG, GIF, WebP');
             return;
         }
 
         console.log(`📤 Admin processing ${imageFiles.length} dropped image(s)`);
+        alert(`📤 ${imageFiles.length}枚の画像を処理中...`);
 
         for (const file of imageFiles) {
             await this.processDroppedImage(file);
         }
+        
+        alert('✅ 画像アップロード完了！');
     }
 
     async processDroppedImage(file) {
+        console.log(`🔄 Processing image: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+        
         return new Promise((resolve) => {
             const reader = new FileReader();
             
             reader.onload = (e) => {
+                console.log('📖 File read successfully, creating image...');
                 const img = new Image();
                 img.onload = () => {
+                    console.log(`🖼️ Image loaded: ${img.width}x${img.height}`);
+                    
                     // 自動リサイズして表示
                     const mainImage = document.querySelector('.main-image');
                     if (mainImage) {
@@ -1206,10 +1245,23 @@ class ImageDropHandler {
                         });
                         
                         console.log(`✅ Processed: ${file.name} (${img.width}x${img.height})`);
+                    } else {
+                        console.error('❌ Main image element not found');
                     }
                     resolve();
                 };
+                
+                img.onerror = () => {
+                    console.error(`❌ Failed to load image: ${file.name}`);
+                    resolve();
+                };
+                
                 img.src = e.target.result;
+            };
+            
+            reader.onerror = () => {
+                console.error(`❌ Failed to read file: ${file.name}`);
+                resolve();
             };
             
             reader.readAsDataURL(file);
