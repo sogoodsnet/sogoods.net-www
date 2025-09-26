@@ -470,6 +470,390 @@
                 font-size: 36px;
             }
         }
+
+        /* 🎭 縦書き短歌ポップアップスタイル */
+        .tanka-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 10000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .tanka-popup.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .tanka-popup-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .tanka-popup-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px 60px;
+            min-width: 300px;
+            min-height: 400px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tanka-close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            transition: color 0.2s ease;
+            font-weight: bold;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tanka-close-btn:hover {
+            color: #333;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+        }
+
+        /* 縦書きテキスト */
+        .tanka-vertical-text {
+            writing-mode: vertical-rl;
+            text-orientation: upright;
+            font-family: 'Noto Serif JP', 'Times New Roman', serif;
+            font-size: 24px;
+            line-height: 1.8;
+            color: #333;
+            margin: 20px 0;
+            padding: 20px;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            letter-spacing: 0.1em;
+        }
+
+        .vertical-char {
+            display: inline-block;
+            text-align: center;
+        }
+
+        /* 短歌メタ情報 */
+        .tanka-meta {
+            margin: 20px 0;
+            font-size: 14px;
+            color: #666;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .tanka-date {
+            font-family: 'Times New Roman', serif;
+        }
+
+        .tanka-rating {
+            color: #f39c12;
+            font-weight: bold;
+        }
+
+        /* 投票ボタン */
+        .tanka-voting {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .vote-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 100px;
+            justify-content: center;
+        }
+
+        .vote-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .like-btn {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        }
+
+        .like-btn:hover {
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .dislike-btn {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+        }
+
+        .dislike-btn:hover {
+            box-shadow: 0 5px 15px rgba(244, 67, 54, 0.4);
+        }
+
+        .vote-btn.voted {
+            animation: voteAnimation 0.3s ease-out;
+        }
+
+        @keyframes voteAnimation {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .vote-count {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 12px;
+            min-width: 20px;
+        }
+
+        /* ミニギャラリーポップアップ */
+        .mini-gallery-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 9999;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .mini-gallery-popup.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .mini-gallery-popup img {
+            max-width: 90vw;
+            max-height: 90vh;
+            object-fit: contain;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        /* 📝 TII Database Styles */
+        .tii-write-area {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .tii-write-area h3 {
+            color: white;
+            font-size: 16px;
+            margin-bottom: 10px;
+            font-family: Arial, sans-serif;
+        }
+
+        #tii-input {
+            width: 100%;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 12px;
+            font-family: 'Times New Roman', serif;
+            resize: vertical;
+            color: #333;
+        }
+
+        #tii-input:focus {
+            outline: none;
+            border-color: #2196F3;
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .tii-meta {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        #tii-author {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            padding: 6px 8px;
+            font-size: 11px;
+            color: #333;
+        }
+
+        #tii-author:focus {
+            outline: none;
+            border-color: #2196F3;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        #tii-submit {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        #tii-submit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(33, 150, 243, 0.4);
+        }
+
+        #tii-submit:active {
+            transform: translateY(0);
+        }
+
+        .tii-entries {
+            max-height: 300px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+        }
+
+        .tii-entries::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .tii-entries::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .tii-entries::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+        }
+
+        .tii-entry {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            font-size: 10px;
+            line-height: 1.4;
+            color: #fff;
+        }
+
+        .tii-entry-content {
+            margin-bottom: 6px;
+            word-wrap: break-word;
+        }
+
+        .tii-entry-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .tii-entry-author {
+            font-weight: bold;
+        }
+
+        .tii-entry-time {
+            font-family: 'Courier New', monospace;
+        }
+
+        .tii-loading {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 10px;
+            padding: 20px;
+        }
+
+        .tii-error {
+            background: rgba(244, 67, 54, 0.1);
+            border: 1px solid rgba(244, 67, 54, 0.3);
+            color: #ff6b6b;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 10px;
+            text-align: center;
+        }
+
+        /* レスポンシブ対応 */
+        @media (max-width: 768px) {
+            .tanka-popup-content {
+                padding: 30px 40px;
+                min-width: 280px;
+                margin: 0 20px;
+            }
+            
+            .tanka-vertical-text {
+                font-size: 20px;
+                min-height: 150px;
+            }
+            
+            .tanka-voting {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .tii-write-area {
+                padding: 12px;
+            }
+
+            #tii-input {
+                height: 60px;
+                font-size: 11px;
+            }
+
+            .tii-entries {
+                max-height: 200px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -551,19 +935,19 @@
                 <div class="news-title">TII</div>
             </div>
             
-            <div class="news-content" id="diary-content">
-                <!-- Notion APIから日記コンテンツが動的に読み込まれます -->
-                <div class="diary-entry">
-                    <h3>今日の出来事</h3>
-                    <p>朝の陽射しが心地よい一日でした。みーこが窓辺で気持ちよさそうに眠っている姿を見ていると、こちらも穏やかな気持ちになります。</p>
-                    
-                    <p>午後からは近くの公園を散歩。桜の木々がそろそろ新緑の季節を迎える準備をしているようで、春の訪れを感じました。</p>
-                    
-                    <p>カメラを持参して何枚か写真を撮影。光と影の美しいコントラストが印象的な一枚が撮れて満足しています。</p>
-                    
-                    <p>夕方はお気に入りのカフェでゆっくりとコーヒーを楽しみました。このような何気ない時間こそが、実は一番大切なのかもしれません。</p>
-                    
-                    <p>今度の週末は少し遠出をして、新しい風景に出会いに行こうと思っています。どんな瞬間に出会えるか、今から楽しみです。</p>
+            <div class="news-content" id="tii-content">
+                <!-- TII Database Content -->
+                <div class="tii-write-area">
+                    <h3>つぶやき</h3>
+                    <textarea id="tii-input" placeholder="今の気持ちや考えを書いてください..." maxlength="500"></textarea>
+                    <div class="tii-meta">
+                        <input type="text" id="tii-author" placeholder="名前（任意）" maxlength="20">
+                        <button id="tii-submit">投稿</button>
+                    </div>
+                </div>
+                
+                <div class="tii-entries" id="tii-entries">
+                    <!-- エントリーが動的に読み込まれます -->
                 </div>
             </div>
             
@@ -574,6 +958,7 @@
     <!-- 📷 Dynamic Photo & Stats System -->
     <script src="notion-api.js"></script>
     <script src="photo-manager.js"></script>
+    <script src="tanka-system.js"></script>
     
     <script>
         // 🔗 Initialize systems on page load
@@ -597,6 +982,9 @@
 
             // 🎭 Interactive Features Initialization
             initializeInteractiveFeatures();
+            
+            // 📝 TII Database System Initialization
+            initializeTIISystem();
         });
 
         // 🔵 Blue Circle Interaction System
@@ -619,6 +1007,61 @@
 
             // 🔢 Number to Tanka transformation
             initializeTankaSystem();
+            
+            // 🖼️ Mini Gallery popup functionality  
+            initializeMiniGallery();
+        }
+
+        // 🖼️ Mini Gallery Popup System
+        function initializeMiniGallery() {
+            console.log('🖼️ Initializing mini gallery popup...');
+            
+            const miniImages = document.querySelectorAll('.mini-image');
+            miniImages.forEach(img => {
+                img.addEventListener('click', function() {
+                    showMiniGalleryPopup(this.src, this.alt);
+                });
+                
+                // ホバー効果を追加
+                img.style.cursor = 'pointer';
+                img.style.transition = 'transform 0.2s ease';
+                
+                img.addEventListener('mouseenter', function() {
+                    this.style.transform = 'scale(1.05)';
+                });
+                
+                img.addEventListener('mouseleave', function() {
+                    this.style.transform = 'scale(1)';
+                });
+            });
+        }
+
+        function showMiniGalleryPopup(imageSrc, imageAlt) {
+            // 既存のポップアップを削除
+            const existingPopup = document.querySelector('.mini-gallery-popup');
+            if (existingPopup) {
+                existingPopup.remove();
+            }
+
+            const popup = document.createElement('div');
+            popup.className = 'mini-gallery-popup';
+            popup.innerHTML = `
+                <img src="${imageSrc.replace('w=100&h=75', 'w=1200&h=900')}" alt="${imageAlt}">
+            `;
+
+            popup.addEventListener('click', function() {
+                popup.classList.remove('show');
+                setTimeout(() => popup.remove(), 300);
+            });
+
+            document.body.appendChild(popup);
+
+            // アニメーション
+            requestAnimationFrame(() => {
+                popup.classList.add('show');
+            });
+
+            console.log(`🖼️ Showing gallery popup: ${imageAlt}`);
         }
 
         // 📝 Short Poem (Tanka) Collection System
@@ -704,6 +1147,21 @@
         }
 
         function showTanka(element, index) {
+            // Use CSV-based tanka system if available
+            if (window.tankaSystem && window.tankaSystem.isInitialized) {
+                const tanka = window.tankaSystem.getRandomTanka();
+                if (tanka) {
+                    element.classList.add('tanka-mode');
+                    element.textContent = tanka.text;
+                    element.setAttribute('data-tanka-id', tanka.id);
+                    element.setAttribute('data-tanka', tanka.text);
+                    
+                    console.log(`📝 Showing CSV tanka ${tanka.id}: "${tanka.text.substring(0, 30)}..."`);
+                    return;
+                }
+            }
+            
+            // Fallback to static collection
             const tanka = tankaCollection[tankaIndex % tankaCollection.length];
             tankaIndex++;
             
@@ -711,7 +1169,7 @@
             element.textContent = tanka;
             element.setAttribute('data-tanka', tanka);
             
-            console.log(`📝 Showing tanka ${tankaIndex}: "${tanka.replace(/\n/g, ' / ')}"`);
+            console.log(`📝 Showing static tanka ${tankaIndex}: "${tanka.replace(/\n/g, ' / ')}"`);
         }
 
         function resetToNumber(element, index) {
@@ -720,16 +1178,29 @@
         }
 
         function grabTanka(element, index) {
+            const tankaId = element.getAttribute('data-tanka-id');
             const tanka = element.getAttribute('data-tanka');
             if (!tanka) return;
             
             element.classList.add('grabbed');
+            
+            // Use advanced tanka system for CSV-based tanka
+            if (tankaId && window.tankaSystem && window.tankaSystem.isInitialized) {
+                const tankaData = window.tankaSystem.tankaDatabase.find(t => t.id == tankaId);
+                if (tankaData) {
+                    window.tankaSystem.displayVerticalTanka(tankaData, element);
+                    console.log(`🤏 Opening vertical tanka display for CSV tanka ${tankaId}`);
+                    return;
+                }
+            }
+            
+            // Fallback for static tanka
             collectedTanka.push(tanka);
             
-            console.log(`🤏 Grabbed tanka: "${tanka.replace(/\n/g, ' / ')}"`);
+            console.log(`🤏 Grabbed static tanka: "${tanka.replace(/\n/g, ' / ')}"`);
             console.log(`📚 Collection now has ${collectedTanka.length} tanka(s)`);
             
-            // Visual feedback
+            // Visual feedback for static tanka
             const grabMessage = document.createElement('div');
             grabMessage.style.cssText = `
                 position: fixed;
@@ -771,6 +1242,177 @@
                 resetToNumber(element, index);
                 element.classList.remove('grabbed');
             }, 1000);
+        }
+
+        // 📝 TII Database System
+        function initializeTIISystem() {
+            console.log('📝 Initializing TII database system...');
+            
+            const submitButton = document.getElementById('tii-submit');
+            const inputTextarea = document.getElementById('tii-input');
+            const authorInput = document.getElementById('tii-author');
+
+            if (submitButton && inputTextarea) {
+                submitButton.addEventListener('click', submitTIIEntry);
+                
+                // Enter key submit (Ctrl+Enter)
+                inputTextarea.addEventListener('keydown', function(e) {
+                    if (e.ctrlKey && e.key === 'Enter') {
+                        submitTIIEntry();
+                    }
+                });
+            }
+
+            // Load existing entries
+            loadTIIEntries();
+
+            // Auto-refresh entries every 30 seconds
+            setInterval(loadTIIEntries, 30000);
+        }
+
+        async function submitTIIEntry() {
+            const input = document.getElementById('tii-input');
+            const author = document.getElementById('tii-author');
+            const submitBtn = document.getElementById('tii-submit');
+
+            const content = input.value.trim();
+            if (!content) {
+                alert('内容を入力してください');
+                return;
+            }
+
+            // Disable button during submission
+            submitBtn.disabled = true;
+            submitBtn.textContent = '投稿中...';
+
+            try {
+                const response = await fetch('/api/tii-entries', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        content: content,
+                        author: author.value.trim() || '匿名'
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        console.log('✅ TII entry submitted successfully');
+                        
+                        // Clear form
+                        input.value = '';
+                        author.value = '';
+                        
+                        // Reload entries
+                        loadTIIEntries();
+                        
+                        // Visual feedback
+                        showTIIFeedback('投稿が完了しました！', 'success');
+                    } else {
+                        throw new Error(result.error);
+                    }
+                } else {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
+            } catch (error) {
+                console.error('❌ TII submission failed:', error);
+                showTIIFeedback('投稿に失敗しました', 'error');
+            } finally {
+                // Re-enable button
+                submitBtn.disabled = false;
+                submitBtn.textContent = '投稿';
+            }
+        }
+
+        async function loadTIIEntries() {
+            const entriesContainer = document.getElementById('tii-entries');
+            if (!entriesContainer) return;
+
+            try {
+                const response = await fetch('/api/tii-entries');
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        displayTIIEntries(result.entries);
+                        console.log(`📝 Loaded ${result.entries.length} TII entries`);
+                    } else {
+                        throw new Error(result.error);
+                    }
+                } else {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
+            } catch (error) {
+                console.error('❌ Failed to load TII entries:', error);
+                entriesContainer.innerHTML = '<div class="tii-error">エントリーの読み込みに失敗しました</div>';
+            }
+        }
+
+        function displayTIIEntries(entries) {
+            const container = document.getElementById('tii-entries');
+            if (!container) return;
+
+            if (entries.length === 0) {
+                container.innerHTML = '<div class="tii-loading">まだエントリーがありません</div>';
+                return;
+            }
+
+            const entriesHTML = entries.map(entry => {
+                const date = new Date(entry.timestamp);
+                const timeString = date.toLocaleDateString('ja-JP', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                return `
+                    <div class="tii-entry">
+                        <div class="tii-entry-content">${escapeHtml(entry.content)}</div>
+                        <div class="tii-entry-meta">
+                            <span class="tii-entry-author">${escapeHtml(entry.author)}</span>
+                            <span class="tii-entry-time">${timeString}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = entriesHTML;
+        }
+
+        function showTIIFeedback(message, type) {
+            const feedback = document.createElement('div');
+            feedback.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? 'rgba(76, 175, 80, 0.9)' : 'rgba(244, 67, 54, 0.9)'};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-size: 14px;
+                z-index: 10000;
+                animation: slideIn 0.3s ease-out;
+            `;
+            
+            feedback.textContent = message;
+            document.body.appendChild(feedback);
+
+            setTimeout(() => {
+                feedback.style.animation = 'slideOut 0.3s ease-out forwards';
+                setTimeout(() => feedback.remove(), 300);
+            }, 2000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         // Store original numbers for reset

@@ -11,7 +11,7 @@ const fs = require('fs').promises;
 const cors = require('cors');
 
 const app = express();
-const port = process.env.PORT || 8080;
+const port = process.env.PORT || 8081;
 
 // CORS設定
 app.use(cors({
@@ -260,11 +260,215 @@ app.get('/api/photos/miiko', async (req, res) => {
     }
 });
 
+// 📝 TII Database System
+const TII_DATA_FILE = path.join(__dirname, 'tii-database.json');
+const TANKA_VOTES_FILE = path.join(__dirname, 'tanka-votes.csv');
+
+// TII データベース初期化
+async function ensureTIIDatabase() {
+    try {
+        await fs.access(TII_DATA_FILE);
+    } catch (error) {
+        const initialData = {
+            entries: [],
+            metadata: {
+                created: new Date().toISOString(),
+                totalEntries: 0
+            }
+        };
+        await fs.writeFile(TII_DATA_FILE, JSON.stringify(initialData, null, 2));
+        console.log('📄 Created TII database file');
+    }
+}
+
+// 短歌投票CSVファイル初期化
+async function ensureTankaVotesFile() {
+    try {
+        await fs.access(TANKA_VOTES_FILE);
+    } catch (error) {
+        const header = 'tankaId,tankaText,likes,dislikes,lastUpdated\n';
+        await fs.writeFile(TANKA_VOTES_FILE, header);
+        console.log('📊 Created tanka votes CSV file');
+    }
+}
+
+// TII エントリー取得エンドポイント
+app.get('/api/tii-entries', async (req, res) => {
+    try {
+        const data = JSON.parse(await fs.readFile(TII_DATA_FILE, 'utf8'));
+        res.json({
+            success: true,
+            entries: data.entries.slice(-20).reverse(), // 最新20件を逆順
+            totalCount: data.metadata.totalEntries
+        });
+    } catch (error) {
+        console.error('❌ TII entries read error:', error);
+        res.status(500).json({
+            error: 'データの読み込みに失敗しました',
+            details: error.message
+        });
+    }
+});
+
+// TII エントリー投稿エンドポイント
+app.post('/api/tii-entries', async (req, res) => {
+    try {
+        const { content, author } = req.body;
+
+        if (!content || content.trim().length === 0) {
+            return res.status(400).json({ error: 'コンテンツが必要です' });
+        }
+
+        const data = JSON.parse(await fs.readFile(TII_DATA_FILE, 'utf8'));
+        
+        const newEntry = {
+            id: Date.now(),
+            content: content.trim(),
+            author: author || '匿名',
+            timestamp: new Date().toISOString(),
+            likes: 0
+        };
+
+        data.entries.push(newEntry);
+        data.metadata.totalEntries = data.entries.length;
+        data.metadata.lastUpdated = new Date().toISOString();
+
+        await fs.writeFile(TII_DATA_FILE, JSON.stringify(data, null, 2));
+
+        console.log(`📝 New TII entry added by ${newEntry.author}: "${content.substring(0, 50)}..."`);
+
+        res.json({
+            success: true,
+            entry: newEntry,
+            totalCount: data.metadata.totalEntries
+        });
+
+    } catch (error) {
+        console.error('❌ TII entry post error:', error);
+        res.status(500).json({
+            error: 'エントリーの投稿に失敗しました',
+            details: error.message
+        });
+    }
+});
+
+// 短歌投票取得エンドポイント
+app.get('/api/tanka-votes', async (req, res) => {
+    try {
+        const csvContent = await fs.readFile(TANKA_VOTES_FILE, 'utf8');
+        const lines = csvContent.split('\n').filter(line => line.trim());
+        
+        const votes = [];
+        for (let i = 1; i < lines.length; i++) { // Skip header
+            const [tankaId, tankaText, likes, dislikes, lastUpdated] = lines[i].split(',');
+            if (tankaId) {
+                votes.push({
+                    tankaId: parseInt(tankaId),
+                    tankaText: tankaText,
+                    likes: parseInt(likes) || 0,
+                    dislikes: parseInt(dislikes) || 0,
+                    lastUpdated: lastUpdated
+                });
+            }
+        }
+
+        res.json({
+            success: true,
+            votes: votes
+        });
+
+    } catch (error) {
+        console.error('❌ Tanka votes read error:', error);
+        res.json({ success: true, votes: [] }); // Empty if file doesn't exist yet
+    }
+});
+
+// 短歌投票エンドポイント
+app.post('/api/vote-tanka', async (req, res) => {
+    try {
+        const { tankaId, vote } = req.body;
+
+        if (!tankaId || !vote || !['like', 'dislike'].includes(vote)) {
+            return res.status(400).json({ error: 'Invalid vote data' });
+        }
+
+        // 現在の投票データを読み込み
+        let csvContent = '';
+        let votes = new Map();
+        
+        try {
+            csvContent = await fs.readFile(TANKA_VOTES_FILE, 'utf8');
+            const lines = csvContent.split('\n').filter(line => line.trim());
+            
+            for (let i = 1; i < lines.length; i++) {
+                const [id, text, likes, dislikes, lastUpdated] = lines[i].split(',');
+                if (id) {
+                    votes.set(parseInt(id), {
+                        tankaText: text,
+                        likes: parseInt(likes) || 0,
+                        dislikes: parseInt(dislikes) || 0,
+                        lastUpdated: lastUpdated
+                    });
+                }
+            }
+        } catch (error) {
+            console.log('📊 Creating new votes file...');
+        }
+
+        // 投票データを更新
+        const currentVotes = votes.get(tankaId) || { 
+            tankaText: `tanka_${tankaId}`, 
+            likes: 0, 
+            dislikes: 0 
+        };
+        
+        if (vote === 'like') {
+            currentVotes.likes++;
+        } else {
+            currentVotes.dislikes++;
+        }
+        
+        currentVotes.lastUpdated = new Date().toISOString();
+        votes.set(tankaId, currentVotes);
+
+        // CSVファイルを再構築
+        let newCsvContent = 'tankaId,tankaText,likes,dislikes,lastUpdated\n';
+        votes.forEach((voteData, id) => {
+            newCsvContent += `${id},"${voteData.tankaText}",${voteData.likes},${voteData.dislikes},${voteData.lastUpdated}\n`;
+        });
+
+        await fs.writeFile(TANKA_VOTES_FILE, newCsvContent);
+
+        console.log(`📊 Tanka ${tankaId} voted: ${vote} (likes: ${currentVotes.likes}, dislikes: ${currentVotes.dislikes})`);
+
+        res.json({
+            success: true,
+            tankaId: tankaId,
+            vote: vote,
+            votes: {
+                likes: currentVotes.likes,
+                dislikes: currentVotes.dislikes
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Tanka vote error:', error);
+        res.status(500).json({
+            error: '投票の記録に失敗しました',
+            details: error.message
+        });
+    }
+});
+
 // サーバー起動
 app.listen(port, '0.0.0.0', async () => {
     await ensurePhotosDir();
-    console.log(`🚀 sogoods.net Photo Upload Server running on port ${port}`);
+    await ensureTIIDatabase();
+    await ensureTankaVotesFile();
+    console.log(`🚀 sogoods.net Enhanced Server running on port ${port}`);
     console.log(`📁 Photos directory: ${PHOTOS_DIR}`);
+    console.log(`📄 TII database: ${TII_DATA_FILE}`);
+    console.log(`📊 Tanka votes: ${TANKA_VOTES_FILE}`);
     console.log(`🔒 Admin password required: sogoods2024`);
 });
 
