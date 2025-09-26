@@ -495,8 +495,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(5px);
+            background: rgba(0, 0, 0, 0.8);
         }
 
         .tanka-popup-content {
@@ -504,14 +503,13 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.98);
             border-radius: 20px;
             padding: 40px 60px;
             min-width: 300px;
             min-height: 400px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(0, 0, 0, 0.1);
             text-align: center;
             display: flex;
             flex-direction: column;
@@ -546,16 +544,18 @@
             writing-mode: vertical-rl;
             text-orientation: upright;
             font-family: 'Noto Serif JP', 'Times New Roman', serif;
-            font-size: 24px;
-            line-height: 1.8;
-            color: #333;
+            font-size: 26px;
+            line-height: 1.6;
+            color: #222;
             margin: 20px 0;
             padding: 20px;
             min-height: 200px;
             display: flex;
             align-items: center;
             justify-content: center;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+            text-shadow: 0 0 1px rgba(0, 0, 0, 0.1);
         }
 
         .vertical-char {
@@ -680,16 +680,9 @@
         .tii-write-area {
             background: rgba(255, 255, 255, 0.1);
             border-radius: 10px;
-            padding: 15px;
+            padding: 12px;
             margin-bottom: 20px;
             border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .tii-write-area h3 {
-            color: white;
-            font-size: 16px;
-            margin-bottom: 10px;
-            font-family: Arial, sans-serif;
         }
 
         #tii-input {
@@ -938,7 +931,6 @@
             <div class="news-content" id="tii-content">
                 <!-- TII Database Content -->
                 <div class="tii-write-area">
-                    <h3>つぶやき</h3>
                     <textarea id="tii-input" placeholder="今の気持ちや考えを書いてください..." maxlength="500"></textarea>
                     <div class="tii-meta">
                         <input type="text" id="tii-author" placeholder="名前（任意）" maxlength="20">
