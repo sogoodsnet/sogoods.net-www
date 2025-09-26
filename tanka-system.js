@@ -149,15 +149,17 @@ class TankaSystem {
             existingPopup.remove();
         }
 
+        // エモーショナルな解説を生成
+        const commentary = this.generateEmotionalCommentary(tankaData.text);
+
         const popup = document.createElement('div');
         popup.className = 'tanka-popup';
         popup.innerHTML = `
             <div class="tanka-popup-content">
                 <div class="tanka-close-btn" onclick="this.closest('.tanka-popup').remove()">×</div>
                 <div class="tanka-vertical-text">${this.createVerticalText(tankaData.text)}</div>
-                <div class="tanka-meta">
-                    <span class="tanka-date">${tankaData.date}</span>
-                    <span class="tanka-rating">評価: ${tankaData.rating}/5</span>
+                <div class="tanka-commentary">
+                    ${commentary}
                 </div>
                 <div class="tanka-voting">
                     <button class="vote-btn like-btn" onclick="window.tankaSystem.voteTanka(${tankaData.id}, 'like', this)">
@@ -178,7 +180,150 @@ class TankaSystem {
             popup.classList.add('show');
         });
 
-        console.log(`📝 Displaying tanka: "${tankaData.text.substring(0, 20)}..."`);
+        console.log(`📝 Displaying tanka with commentary: "${tankaData.text.substring(0, 20)}..."`);
+    }
+
+    // 木下龍也・俵万智スタイルのエモーショナルな解説を生成
+    generateEmotionalCommentary(tankaText) {
+        // 短歌の内容を分析してテーマを抽出
+        const themes = this.analyzeTankaThemes(tankaText);
+        
+        // 現代的でエモーショナルな解説パターン
+        const commentaryStyles = [
+            // 木下龍也スタイル - SNS世代の感覚
+            {
+                pattern: /笑|わら|ふしぎ/,
+                style: "この瞬間の「？？？」感。理由なんてわからないけど、そこに確かにある幸せ。SNSで「いいね」を押す指先みたいに、心が勝手に反応してしまう。"
+            },
+            {
+                pattern: /かみさま|お参り|気持ち/,
+                style: "神様に向かう気持ちって、きっと「とりあえず」みたいなところがあって。でもその「とりあえず」の中に、人間の純粋さが宿っている。"
+            },
+            {
+                pattern: /さむしい|子|髪|なで/,
+                style: "「さむしい」って方言が、距離を縮めてくれる。髪をなでる手のひらに込められた「わかってる」という気持ち。言葉にしなくても伝わるもの。"
+            },
+            {
+                pattern: /生きる|信じる|やめない/,
+                style: "「生きるとは信じること」という言葉の重さ。でも重すぎないように、そっと手を差し伸べる。信じることをやめないでいられる世界を願う。"
+            },
+            {
+                pattern: /芽|花|育て/,
+                style: "もやもやにも花が咲く可能性。今はぼんやりしていても、きっと何かになる。その「かもしれない」を大切に見守る眼差し。"
+            },
+            {
+                pattern: /器用|叫べない|あなた|ほしい/,
+                style: "大人になると叫べなくなる。でも心の奥で「あなたがほしい」と言い続けている自分がいる。器用さという檻の中での静かな叫び。"
+            },
+            {
+                pattern: /夢|楽し|行き先/,
+                style: "夢って目的地じゃなくて、歩いている時間そのものなのかも。ゆるく楽しんでいるうちに、気づいたら違う場所にいる。"
+            },
+            {
+                pattern: /厳しい|冬|春|ほしい/,
+                style: "一番厳しい冬を経験した人だからこそ、春への渇望が深い。「君と春がほしい」という願いに、すべてが込められている。"
+            },
+            {
+                pattern: /窓|水路|雨/,
+                style: "窓についた水滴を追いかける視線。そこに人生の行方を重ねてしまう。雨に任せる、という諦めと信頼。"
+            },
+            {
+                pattern: /四苦八苦|目覚め|生きる/,
+                style: "朝の目覚めが幻想的に感じる瞬間。日常の中に非日常が混じり込む。「どう生きるか」という問いは、毎朝新しく立ち上がる。"
+            }
+        ];
+
+        // 俵万智スタイル - 日常の中の詩的発見
+        const tawaraStyles = [
+            {
+                pattern: /思い出|記憶|覚え/,
+                style: "記憶って不思議。痛かったことも美しく変わっていく。時間が、私たちの心にそっと魔法をかけてくれる。"
+            },
+            {
+                pattern: /恋|愛|好き/,
+                style: "恋をしている時の世界の見え方。いつもの景色が、まるで初めて見るもののように輝いて見える。"
+            },
+            {
+                pattern: /日常|毎日|普通/,
+                style: "何でもない日々の中に、実は宝物が隠れている。後から振り返った時、「あの時間が一番幸せだった」と気づく。"
+            },
+            {
+                pattern: /自然|風|空|雲/,
+                style: "自然が見せてくれる一瞬の表情。それを心に留めておきたくて、言葉にしてみる。言葉にした瞬間、それは永遠になる。"
+            }
+        ];
+
+        // 全パターンを統合
+        const allStyles = [...commentaryStyles, ...tawaraStyles];
+
+        // 短歌にマッチするスタイルを検索
+        for (let style of allStyles) {
+            if (style.pattern.test(tankaText)) {
+                return style.style;
+            }
+        }
+
+        // デフォルトの現代的解説
+        return this.generateDefaultCommentary(tankaText, themes);
+    }
+
+    // 短歌のテーマ分析
+    analyzeTankaThemes(text) {
+        const themes = [];
+        
+        // 感情テーマ
+        if (/嬉し|楽し|幸せ|笑/.test(text)) themes.push('joy');
+        if (/悲し|泣|涙|辛/.test(text)) themes.push('sadness');
+        if (/恋|愛|好き|恋人/.test(text)) themes.push('love');
+        if (/不安|心配|怖/.test(text)) themes.push('anxiety');
+        if (/怒|腹立/.test(text)) themes.push('anger');
+        
+        // 自然テーマ
+        if (/春|桜|花/.test(text)) themes.push('spring');
+        if (/夏|暑|海/.test(text)) themes.push('summer');
+        if (/秋|紅葉|風/.test(text)) themes.push('autumn');
+        if (/冬|雪|寒/.test(text)) themes.push('winter');
+        if (/雨|雲|空/.test(text)) themes.push('weather');
+        
+        // 人間関係テーマ
+        if (/家族|母|父|子/.test(text)) themes.push('family');
+        if (/友|仲間/.test(text)) themes.push('friendship');
+        if (/一人|独り|孤独/.test(text)) themes.push('solitude');
+        
+        // 時間テーマ
+        if (/過去|昔|思い出/.test(text)) themes.push('past');
+        if (/未来|明日|希望/.test(text)) themes.push('future');
+        if (/今|瞬間|現在/.test(text)) themes.push('present');
+        
+        return themes;
+    }
+
+    // デフォルト解説生成
+    generateDefaultCommentary(text, themes) {
+        const defaultCommentaries = [
+            "この短歌に込められた感情が、読む人の心にそっと寄り添う。言葉の向こう側にある、作者の優しい眼差しを感じる。",
+            "日常の中にある小さな発見。それを短歌という形に込めることで、誰かの心に届く贈り物になる。",
+            "短い言葉の中に、長い時間をかけて育まれた気持ちが詰まっている。読むたびに違う味わいを感じられる。",
+            "この歌を読んでいると、自分も同じような経験をしたことがあるような気がしてくる。共感という名前の橋が、心と心を繋いでくれる。",
+            "作者の心の動きが、そのまま読み手の心に響いてくる。短歌の持つ力を、改めて感じさせてくれる一首。",
+            "言葉と言葉の間にある「余白」に、読み手の想像が広がっていく。そこに短歌の魅力がある。",
+            "この瞬間の気持ちを、未来の自分や誰かに伝えたくて生まれた歌。時間を超えて響き続ける。"
+        ];
+
+        // テーマに基づいた補完
+        let themeAddition = "";
+        if (themes.includes('love')) {
+            themeAddition = "恋する気持ちの繊細さが、言葉の選び方からも伝わってくる。";
+        } else if (themes.includes('solitude')) {
+            themeAddition = "一人の時間の中で見つけた、かけがえのない発見。";
+        } else if (themes.includes('nature')) {
+            themeAddition = "自然が見せてくれる表情と、心の動きが重なり合う。";
+        } else if (themes.includes('family')) {
+            themeAddition = "家族への想いが、優しい言葉となって現れている。";
+        }
+
+        const baseCommentary = defaultCommentaries[Math.floor(Math.random() * defaultCommentaries.length)];
+        return themeAddition ? `${themeAddition}${baseCommentary}` : baseCommentary;
     }
 
     // 縦書きテキストを生成
