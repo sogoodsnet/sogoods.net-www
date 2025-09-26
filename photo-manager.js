@@ -283,32 +283,20 @@ class PhotoManager {
             }
         }
         
-        // 一時的にプレースホルダーを追加（動作確認用）
-        const placeholderPhotos = [
-            'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&h=1200&fit=crop&crop=face',
-            'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=800&h=1200&fit=crop',
-            'https://images.unsplash.com/photo-1583336663277-620dc1996580?w=800&h=1200&fit=crop',
-            'https://images.unsplash.com/photo-1571566882372-1598d88abd90?w=800&h=1200&fit=crop',
-            'https://images.unsplash.com/photo-1561948955-570b270e7c36?w=800&h=1200&fit=crop',
-            'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=800&h=1200&fit=crop&crop=center'
-        ];
+        // Flickr写真のみを使用（Unsplashフォールバックを削除）
+        const allPhotos = [...directFlickrUrls, ...flickrPhotos];
         
-        // Flickr写真とプレースホルダーを組み合わせ
-        const allPhotos = [...directFlickrUrls, ...flickrPhotos, ...placeholderPhotos];
-        
-        // 各URLの有効性をチェック
+        // 各URLの有効性をチェック（Flickr写真のみ）
         const validPhotos = [];
-        for (const photoUrl of allPhotos.slice(0, 10)) { // 最初の10枚をテスト
+        for (const photoUrl of allPhotos.slice(0, 20)) { // Flickr写真をより多くテスト
             try {
                 const isValid = await this.checkImageUrl(photoUrl);
-                if (isValid || photoUrl.includes('unsplash.com')) {
+                if (isValid) {
                     validPhotos.push(photoUrl);
                 }
             } catch (error) {
-                // エラーの場合もUnsplashは有効とみなす
-                if (photoUrl.includes('unsplash.com')) {
-                    validPhotos.push(photoUrl);
-                }
+                // Flickr写真のみなので、エラー時は追加しない
+                console.log(`🔍 Flickr URL check failed: ${photoUrl}`);
             }
         }
         
@@ -455,16 +443,10 @@ class PhotoManager {
         return [];
     }
 
-    // サンプル写真（フォルダが空の場合のフォールバック）
+    // フォールバック用空配列（Flickr写真のみを使用）
     getSamplePhotos() {
-        return [
-            'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&h=1200&fit=crop&crop=face',
-            'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=800&h=1200&fit=crop',
-            'https://images.unsplash.com/photo-1583336663277-620dc1996580?w=800&h=1200&fit=crop',
-            'https://images.unsplash.com/photo-1571566882372-1598d88abd90?w=800&h=1200&fit=crop',
-            'https://images.unsplash.com/photo-1561948955-570b270e7c36?w=800&h=1200&fit=crop',
-            'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=800&h=1200&fit=crop&crop=center'
-        ];
+        console.log('⚠️ No Flickr photos available - returning empty array');
+        return [];
     }
 
     // ランダム写真表示の設定
