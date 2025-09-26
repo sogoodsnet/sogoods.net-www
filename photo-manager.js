@@ -242,9 +242,12 @@ class PhotoManager {
     async getCuratedFlickrPhotos() {
         // 実際のsogoods Flickr写真ID一覧
         const sogoodsPhotoIds = [
-            '30157100788', // 提供されたサンプルID
-            // 追加の写真IDがあればここに記入
-            // 例: '12345678901', '23456789012', etc.
+            '30157100788', // 元のサンプルID
+            '41992530634', // 新しく追加された写真
+            '42581572701', // 新しく追加された写真
+            '42581568481', // 新しく追加された写真
+            '42530415872', // 新しく追加された写真
+            '41177730075'  // 新しく追加された写真
         ];
         
         // 写真IDから直接画像URLを構築
@@ -252,10 +255,16 @@ class PhotoManager {
         
         // 手動設定された完全なFlickr画像URL（高品質）
         const directFlickrUrls = [
-            // 30157100788 用の複数サイズをテスト
-            'https://live.staticflickr.com/1973/30157100788_b1a2c3d4e5_b.jpg', // Large サイズ
-            'https://live.staticflickr.com/1973/30157100788_b1a2c3d4e5_c.jpg', // Medium 800 サイズ
-            'https://live.staticflickr.com/1973/30157100788_b1a2c3d4e5_z.jpg', // Medium 640 サイズ
+            // 元の写真ID 30157100788
+            'https://live.staticflickr.com/1973/30157100788_b1a2c3d4e5_b.jpg',
+            'https://live.staticflickr.com/1973/30157100788_b1a2c3d4e5_c.jpg',
+            
+            // 新しい写真ID用の推測URL（複数パターンを試行）
+            'https://live.staticflickr.com/65535/41992530634_000000000_b.jpg',
+            'https://live.staticflickr.com/65535/42581572701_000000000_b.jpg', 
+            'https://live.staticflickr.com/65535/42581568481_000000000_b.jpg',
+            'https://live.staticflickr.com/65535/42530415872_000000000_b.jpg',
+            'https://live.staticflickr.com/65535/41177730075_000000000_b.jpg'
         ];
         
         // Flickr画像URL構築の代替パターンを試行
