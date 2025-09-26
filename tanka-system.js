@@ -185,86 +185,194 @@ class TankaSystem {
 
     // 木下龍也・俵万智スタイルのエモーショナルな解説を生成
     generateEmotionalCommentary(tankaText) {
-        // 短歌の内容を分析してテーマを抽出
-        const themes = this.analyzeTankaThemes(tankaText);
+        console.log(`🔍 Analyzing tanka: "${tankaText}"`);
         
-        // 現代的でエモーショナルな解説パターン
-        const commentaryStyles = [
-            // 木下龍也スタイル - SNS世代の感覚
+        // より精密な短歌分析のための詳細パターン
+        const precisePatterns = [
             {
-                pattern: /笑|わら|ふしぎ/,
-                style: "この瞬間の「？？？」感。理由なんてわからないけど、そこに確かにある幸せ。SNSで「いいね」を押す指先みたいに、心が勝手に反応してしまう。"
+                pattern: /たまに.*笑.*ふしぎ.*教え.*いない.*笑/,
+                style: "赤ちゃんの「なんで笑うの？」っていう瞬間。まだ言葉を教えてもいないのに、なぜかふっと笑顔を見せる不思議。その純粋な反応に、大人が逆に教えられる。"
             },
             {
-                pattern: /かみさま|お参り|気持ち/,
-                style: "神様に向かう気持ちって、きっと「とりあえず」みたいなところがあって。でもその「とりあえず」の中に、人間の純粋さが宿っている。"
+                pattern: /かみさま.*ちよ.*やちよ.*わから.*お参り.*きもち/,
+                style: "「ちよもやちよも」って古い言葉だけど、神様への気持ちって結局よくわからないまま手を合わせる。そのよくわからなさが、かえって純粋で美しい。"
             },
             {
-                pattern: /さむしい|子|髪|なで/,
-                style: "「さむしい」って方言が、距離を縮めてくれる。髪をなでる手のひらに込められた「わかってる」という気持ち。言葉にしなくても伝わるもの。"
+                pattern: /さむしい.*ふところ.*もぐり.*子.*さむしかった.*髪.*なで/,
+                style: "「さむしい」という方言の温かさ。懐にもぐりこむ子に「さむしかったね」と髪をなでる瞬間。言葉と触れ合いで包み込む優しさ。"
             },
             {
-                pattern: /生きる|信じる|やめない/,
-                style: "「生きるとは信じること」という言葉の重さ。でも重すぎないように、そっと手を差し伸べる。信じることをやめないでいられる世界を願う。"
+                pattern: /とけこま.*拒絶.*きょうかい.*手前.*手.*にぎる/,
+                style: "完全に溶け込むわけでもなく、かといって拒絶するわけでもない。境界線の手前で手を握る、そのちょうどいい距離感。人間関係の絶妙なバランス。"
             },
             {
-                pattern: /芽|花|育て/,
-                style: "もやもやにも花が咲く可能性。今はぼんやりしていても、きっと何かになる。その「かもしれない」を大切に見守る眼差し。"
+                pattern: /生きる.*信じる.*きみ.*信じる.*やめない/,
+                style: "「生きるとは信じること」と言った君が、信じることをやめないように。シンプルだけど深い願い。信じる力を失わずにいてほしいという祈り。"
             },
             {
-                pattern: /器用|叫べない|あなた|ほしい/,
-                style: "大人になると叫べなくなる。でも心の奥で「あなたがほしい」と言い続けている自分がいる。器用さという檻の中での静かな叫び。"
+                pattern: /もやもや.*芽.*花.*さく.*よく.*みて.*育て/,
+                style: "今のもやもやも、いつか花になるかもしれない。だから諦めずによく見て育ててほしい。不安や迷いさえも、可能性として受け止める眼差し。"
             },
             {
-                pattern: /夢|楽し|行き先/,
-                style: "夢って目的地じゃなくて、歩いている時間そのものなのかも。ゆるく楽しんでいるうちに、気づいたら違う場所にいる。"
+                pattern: /ひと.*よ.*せい.*だま.*心.*なくし.*あかり.*灯す.*ひ.*くる/,
+                style: "人や世の中のせいにして騙す心をなくしても、明かりを灯す日がくる。他人を責める気持ちを手放した時に見えてくる、希望の光。"
             },
             {
-                pattern: /厳しい|冬|春|ほしい/,
-                style: "一番厳しい冬を経験した人だからこそ、春への渇望が深い。「君と春がほしい」という願いに、すべてが込められている。"
+                pattern: /器用.*叫べない.*花いちもんめ.*あなた.*ほしい/,
+                style: "大人になって器用になったら、素直に叫べなくなった。でも心の奥で「花いちもんめ、あなたがほしい」と子どもの頃のように願い続けている。"
             },
             {
-                pattern: /窓|水路|雨/,
-                style: "窓についた水滴を追いかける視線。そこに人生の行方を重ねてしまう。雨に任せる、という諦めと信頼。"
+                pattern: /人生.*たのしむ.*おもしろく.*おもう.*あり.*むれ.*つづく/,
+                style: "人生を楽しむことも、また面白く思うこと。そんな風に思える仲間が続いていく。楽しさの連鎖、笑顔の循環。"
             },
             {
-                pattern: /四苦八苦|目覚め|生きる/,
-                style: "朝の目覚めが幻想的に感じる瞬間。日常の中に非日常が混じり込む。「どう生きるか」という問いは、毎朝新しく立ち上がる。"
+                pattern: /ひとひら.*よひら.*あいだ.*咲く.*花.*あはれ.*思わ.*人.*つぼみ/,
+                style: "一片と余片の間に咲く花。普通の人が「あはれ」と思わない小さなつぼみにも、美しさを見つける感性。見過ごされがちなものへの愛情。"
             }
         ];
 
-        // 俵万智スタイル - 日常の中の詩的発見
-        const tawaraStyles = [
+        // より一般的なテーマパターン
+        const generalPatterns = [
             {
-                pattern: /思い出|記憶|覚え/,
-                style: "記憶って不思議。痛かったことも美しく変わっていく。時間が、私たちの心にそっと魔法をかけてくれる。"
+                pattern: /笑.*不思議|ふしぎ.*笑/,
+                style: "笑いの不思議さ。なぜその瞬間に笑みがこぼれるのか、理由はわからないけれど確かにある温かさ。"
             },
             {
-                pattern: /恋|愛|好き/,
-                style: "恋をしている時の世界の見え方。いつもの景色が、まるで初めて見るもののように輝いて見える。"
+                pattern: /神.*参り|かみさま.*きもち/,
+                style: "神様に向き合う時の、言葉にならない気持ち。理屈じゃない、心の奥底からの素直な思い。"
             },
             {
-                pattern: /日常|毎日|普通/,
-                style: "何でもない日々の中に、実は宝物が隠れている。後から振り返った時、「あの時間が一番幸せだった」と気づく。"
+                pattern: /子.*髪.*なで|さむしい.*子/,
+                style: "子どもへの優しさが、髪をなでる手のひらに込められている。言葉以上に伝わる愛情。"
             },
             {
-                pattern: /自然|風|空|雲/,
-                style: "自然が見せてくれる一瞬の表情。それを心に留めておきたくて、言葉にしてみる。言葉にした瞬間、それは永遠になる。"
+                pattern: /生きる.*信じる/,
+                style: "生きることと信じること。この二つは切っても切れない関係。信じる力があるから生きていける。"
+            },
+            {
+                pattern: /芽.*花.*育て/,
+                style: "今は小さな芽でも、大切に育てればいつか花を咲かせる。成長への希望と愛情。"
+            },
+            {
+                pattern: /夢.*楽し.*道/,
+                style: "夢への道のりを楽しむ心。目的地よりも、歩いている今この時間を大切にする生き方。"
+            },
+            {
+                pattern: /冬.*春.*ほしい/,
+                style: "厳しい冬を経験したからこそ、春への憧れが深い。困難の後に来る希望への切実な願い。"
+            },
+            {
+                pattern: /窓.*雨.*水|雨.*まかせる/,
+                style: "窓辺の雨を見つめる時間。自然に身を任せる心の静けさ。コントロールできないものへの信頼。"
+            },
+            {
+                pattern: /目覚め.*生きる.*意志/,
+                style: "毎朝の目覚めは、新しい一日をどう生きるかを問いかけてくる。日常の中にある哲学的な瞬間。"
+            },
+            {
+                pattern: /記憶.*思い出/,
+                style: "記憶の中に大切にしまわれた思い出。時間が経つほどに、美しく輝いて見えてくる。"
+            },
+            {
+                pattern: /恋.*愛.*好き/,
+                style: "恋をしている時の世界の見え方。すべてがいつもより鮮やかで、特別に感じられる。"
+            },
+            {
+                pattern: /家族.*母.*父.*子/,
+                style: "家族という、血の繋がりを超えた心の絆。日常の中にある、かけがえのない愛情。"
+            },
+            {
+                pattern: /一人.*独り.*孤独/,
+                style: "一人の時間だからこそ見えてくるもの。孤独の中にある、静かな豊かさ。"
+            },
+            {
+                pattern: /風.*空.*雲.*自然/,
+                style: "自然が見せてくれる表情の豊かさ。そこに自分の心情を重ねてしまう。"
             }
         ];
 
-        // 全パターンを統合
-        const allStyles = [...commentaryStyles, ...tawaraStyles];
-
-        // 短歌にマッチするスタイルを検索
-        for (let style of allStyles) {
-            if (style.pattern.test(tankaText)) {
-                return style.style;
+        // まず精密パターンをチェック
+        for (let pattern of precisePatterns) {
+            if (pattern.pattern.test(tankaText)) {
+                console.log(`✅ Matched precise pattern: ${pattern.pattern}`);
+                return pattern.style;
             }
         }
 
-        // デフォルトの現代的解説
-        return this.generateDefaultCommentary(tankaText, themes);
+        // 次に一般的パターンをチェック
+        for (let pattern of generalPatterns) {
+            if (pattern.pattern.test(tankaText)) {
+                console.log(`✅ Matched general pattern: ${pattern.pattern}`);
+                return pattern.style;
+            }
+        }
+
+        // キーワードベースの解説生成
+        return this.generateKeywordBasedCommentary(tankaText);
+    }
+
+    // キーワードベースの解説生成
+    generateKeywordBasedCommentary(tankaText) {
+        const keywords = [];
+        
+        // 感情キーワード
+        if (/嬉し|楽し|幸せ|よろこ/.test(tankaText)) keywords.push('joy');
+        if (/悲し|泣|涙|辛|苦し/.test(tankaText)) keywords.push('sadness');
+        if (/愛|恋|好き|恋人/.test(tankaText)) keywords.push('love');
+        if (/不安|心配|怖|恐/.test(tankaText)) keywords.push('anxiety');
+        if (/怒|腹立|いら/.test(tankaText)) keywords.push('anger');
+        if (/懐かし|思い出|昔/.test(tankaText)) keywords.push('nostalgia');
+        
+        // 自然・季節キーワード
+        if (/春|桜|花|芽/.test(tankaText)) keywords.push('spring');
+        if (/夏|暑|海|陽/.test(tankaText)) keywords.push('summer');
+        if (/秋|紅葉|風|落ち葉/.test(tankaText)) keywords.push('autumn');
+        if (/冬|雪|寒|氷/.test(tankaText)) keywords.push('winter');
+        if (/雨|雲|空|虹/.test(tankaText)) keywords.push('weather');
+        
+        // 人間関係キーワード
+        if (/家族|母|父|子|親/.test(tankaText)) keywords.push('family');
+        if (/友|仲間|みんな/.test(tankaText)) keywords.push('friendship');
+        if (/一人|独り|孤独|ひとり/.test(tankaText)) keywords.push('solitude');
+        
+        // 時間キーワード
+        if (/過去|昔|思い出|前/.test(tankaText)) keywords.push('past');
+        if (/未来|明日|希望|将来/.test(tankaText)) keywords.push('future');
+        if (/今|瞬間|現在|いま/.test(tankaText)) keywords.push('present');
+
+        // キーワードに基づいた解説
+        const commentaryMap = {
+            joy: "この歌に込められた喜びが、読む人の心も明るくしてくれる。幸せって、こうやって人から人へ伝わっていくもの。",
+            sadness: "悲しみを丁寧に言葉にすることで、その感情に向き合おうとする強さを感じる。涙の向こう側にある希望。",
+            love: "愛情を短歌に込める時の、その人への想いの深さ。言葉を選ぶ一つ一つに、愛が宿っている。",
+            anxiety: "不安な気持ちも、こうして歌にすることで少し軽くなる。一人じゃないよ、という声が聞こえてくる。",
+            nostalgia: "懐かしさに包まれながら、過去の自分と今の自分が対話している。時間を超えた心の交流。",
+            spring: "春の訪れを心で感じ取る繊細さ。新しい季節への期待と希望が、言葉の端々に現れている。",
+            family: "家族への愛情が、何気ない日常の描写に込められている。当たり前の幸せを大切にする心。",
+            solitude: "一人の時間だからこそ見えてくる景色がある。孤独の中にある豊かさを発見する眼差し。",
+            present: "今この瞬間を大切に捉える気持ち。過ぎ去ってしまう時間への愛おしさ。"
+        };
+
+        if (keywords.length > 0) {
+            const primaryKeyword = keywords[0];
+            console.log(`🎯 Generated commentary based on keyword: ${primaryKeyword}`);
+            return commentaryMap[primaryKeyword] || this.getDefaultCommentary();
+        }
+
+        return this.getDefaultCommentary();
+    }
+
+    // デフォルト解説
+    getDefaultCommentary() {
+        const defaults = [
+            "短い言葉の中に、深い想いが込められている。読むたびに新しい発見がある、そんな一首。",
+            "日常の中の小さな気づきを、大切に言葉に込めた歌。作者の優しい眼差しが感じられる。",
+            "この歌を読んでいると、自分の体験と重なる部分があって、心が動かされる。",
+            "言葉と言葉の間にある余白に、読み手の想像が広がっていく。短歌の魅力を感じる一首。",
+            "作者の心の動きが、そのまま読み手に伝わってくる。素直な感情表現が印象的。"
+        ];
+        
+        return defaults[Math.floor(Math.random() * defaults.length)];
     }
 
     // 短歌のテーマ分析
