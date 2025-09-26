@@ -8,6 +8,7 @@ class PhotoManager {
         this.photosPath = '/photos';
         this.miikoPhotos = [];
         this.galleryPhotos = [];
+        this.uploadedPhotos = []; // アップロードされた写真を保存
         this.currentPhoto = null;
         this.updateInterval = null;
         this.stats = {
@@ -21,6 +22,9 @@ class PhotoManager {
     }
 
     async init() {
+        // アップロード写真を復元
+        this.loadUploadedPhotos();
+        
         await this.loadPhotoList();
         this.setupRandomDisplay();
         this.setupRealtimeStats();
@@ -95,21 +99,21 @@ class PhotoManager {
                 this.miikoPhotos = flickrPhotos.slice(0, Math.ceil(flickrPhotos.length * 0.7));
                 this.galleryPhotos = flickrPhotos.slice(Math.ceil(flickrPhotos.length * 0.7));
                 
-                this.stats.totalPhotos = flickrPhotos.length;
-                console.log(`📷 Loaded ${this.miikoPhotos.length} main photos, ${this.galleryPhotos.length} gallery photos from Flickr`);
+                this.stats.totalPhotos = flickrPhotos.length + this.uploadedPhotos.length;
+                console.log(`📷 Loaded ${this.miikoPhotos.length} main photos, ${this.galleryPhotos.length} gallery photos from Flickr, ${this.uploadedPhotos.length} uploaded photos`);
             } else {
                 // Flickr取得に失敗した場合のフォールバック
                 console.log('⚠️ Flickr load failed, using sample photos');
                 this.miikoPhotos = this.getSamplePhotos();
                 this.galleryPhotos = [];
-                this.stats.totalPhotos = this.miikoPhotos.length;
+                this.stats.totalPhotos = this.miikoPhotos.length + this.uploadedPhotos.length;
             }
             
         } catch (error) {
             console.warn('📁 Flickr API failed, using sample photos:', error.message);
             this.miikoPhotos = this.getSamplePhotos();
             this.galleryPhotos = [];
-            this.stats.totalPhotos = this.miikoPhotos.length;
+            this.stats.totalPhotos = this.miikoPhotos.length + this.uploadedPhotos.length;
         }
     }
 
@@ -226,6 +230,50 @@ class PhotoManager {
         
         console.log(`📸 Curated photos: ${validPhotos.length} photos (including ${sogoodsPhotoIds.length} Flickr IDs)`);
         return validPhotos;
+    }
+
+    // アップロードされた写真をランダム表示に追加
+    addUploadedPhoto(dataUrl, fileName) {
+        // アップロード写真を配列に追加
+        this.uploadedPhotos.push(dataUrl);
+        
+        // 統計更新
+        this.stats.totalPhotos = this.uploadedPhotos.length + this.miikoPhotos.length + this.galleryPhotos.length;
+        this.stats.lastUpdate = new Date();
+        
+        // ローカルストレージに保存（セッション維持）
+        this.saveUploadedPhotos();
+        
+        console.log(`📤 Photo added to rotation: ${fileName}`);
+        console.log(`📊 Total photos in rotation: ${this.stats.totalPhotos} (${this.uploadedPhotos.length} uploaded)`);
+        
+        // ミニギャラリーを即座に更新
+        this.updateMiniGallery();
+    }
+
+    // アップロード写真をローカルストレージに保存
+    saveUploadedPhotos() {
+        try {
+            // データURL は大きいので、最新の10枚のみ保存
+            const recentPhotos = this.uploadedPhotos.slice(-10);
+            localStorage.setItem('sogoods_uploaded_photos', JSON.stringify(recentPhotos));
+        } catch (error) {
+            console.warn('⚠️ Failed to save uploaded photos to localStorage:', error);
+        }
+    }
+
+    // ローカルストレージからアップロード写真を復元
+    loadUploadedPhotos() {
+        try {
+            const savedPhotos = localStorage.getItem('sogoods_uploaded_photos');
+            if (savedPhotos) {
+                this.uploadedPhotos = JSON.parse(savedPhotos);
+                console.log(`📁 Restored ${this.uploadedPhotos.length} uploaded photos from storage`);
+            }
+        } catch (error) {
+            console.warn('⚠️ Failed to load uploaded photos from localStorage:', error);
+            this.uploadedPhotos = [];
+        }
     }
 
     // Flickr写真IDから画像URLを構築（推測ベース）
@@ -356,10 +404,13 @@ class PhotoManager {
 
     // ランダムに写真を表示（自動リサイズ付き）
     displayRandomPhoto() {
-        if (this.miikoPhotos.length === 0) return;
+        // アップロード写真 + Flickr写真を組み合わせ
+        const allMainPhotos = [...this.uploadedPhotos, ...this.miikoPhotos];
         
-        const randomIndex = Math.floor(Math.random() * this.miikoPhotos.length);
-        const selectedPhoto = this.miikoPhotos[randomIndex];
+        if (allMainPhotos.length === 0) return;
+        
+        const randomIndex = Math.floor(Math.random() * allMainPhotos.length);
+        const selectedPhoto = allMainPhotos[randomIndex];
         
         const mainImage = document.querySelector('.main-image');
         if (mainImage) {
@@ -372,13 +423,15 @@ class PhotoManager {
             this.stats.viewCount++;
         }
         
-        console.log(`🎲 Random photo: ${randomIndex + 1}/${this.miikoPhotos.length}`);
+        const photoType = randomIndex < this.uploadedPhotos.length ? 'uploaded' : 'flickr';
+        console.log(`🎲 Random photo: ${randomIndex + 1}/${allMainPhotos.length} (${photoType})`);
     }
 
     // 小さなギャラリーを更新（自動リサイズ付き）
     updateMiniGallery() {
         const miniImages = document.querySelectorAll('.mini-image');
-        const allPhotos = [...this.miikoPhotos, ...this.galleryPhotos];
+        // アップロード写真 + Flickr写真を組み合わせ（ミニギャラリー用）
+        const allPhotos = [...this.uploadedPhotos, ...this.miikoPhotos, ...this.galleryPhotos];
         
         if (allPhotos.length === 0) return;
         
@@ -397,6 +450,8 @@ class PhotoManager {
             // ホバーエフェクト用のオリジナル色画像を準備
             this.setupMiniGalleryHoverEffect(img, photoSrc);
         });
+        
+        console.log(`🖼️ Mini gallery updated: ${allPhotos.length} photos available (${this.uploadedPhotos.length} uploaded)`);
     }
 
     // リアルタイム統計の設定
@@ -1220,7 +1275,12 @@ class ImageDropHandler {
             await this.processDroppedImage(file);
         }
         
-        alert('✅ 画像アップロード完了！');
+        alert('✅ 画像アップロード完了！新しい写真がランダム表示に追加されました。');
+        
+        // アップロード後、少し待ってからランダム表示を更新
+        setTimeout(() => {
+            this.photoManager.displayRandomPhoto();
+        }, 1000);
     }
 
     async processDroppedImage(file) {
@@ -1234,6 +1294,9 @@ class ImageDropHandler {
                 const img = new Image();
                 img.onload = () => {
                     console.log(`🖼️ Image loaded: ${img.width}x${img.height}`);
+                    
+                    // アップロードされた写真をランダム表示に追加
+                    this.photoManager.addUploadedPhoto(e.target.result, file.name);
                     
                     // 自動リサイズして表示
                     const mainImage = document.querySelector('.main-image');
