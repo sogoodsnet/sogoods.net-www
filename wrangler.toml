@@ -1,0 +1,35 @@
+name = "sogoods-net-www"
+compatibility_date = "2023-08-14"
+pages_build_output_dir = "./"
+
+# Cloudflare KV Namespaces for data storage
+[[kv_namespaces]]
+binding = "TII_KV"
+id = "tii_database_production"
+preview_id = "tii_database_preview"
+
+[[kv_namespaces]]  
+binding = "TANKA_KV"
+id = "tanka_votes_production"
+preview_id = "tanka_votes_preview"
+
+# Environment variables
+[vars]
+ENVIRONMENT = "production"
+SITE_NAME = "sogoods.net"
+
+# Build configuration
+[build]
+command = ""
+cwd = ""
+watch_dir = ""
+
+# Development configuration
+[dev]
+ip = "127.0.0.1"
+port = 8788
+local_protocol = "https"
+
+# Functions configuration
+[functions]
+# Cloudflare Functions are automatically detected in /functions directory
