@@ -238,70 +238,33 @@ class PhotoManager {
         }
     }
 
-    // sogoods Flickrアカウントからの厳選写真
+    // sogoods Flickrアカウントからの厳選写真（サーバー経由）
     async getCuratedFlickrPhotos() {
-        // 実際のsogoods Flickr写真ID一覧
-        const sogoodsPhotoIds = [
-            '30157100788', // 元のサンプルID
-            '41992530634', // 新しく追加された写真
-            '42581572701', // 新しく追加された写真
-            '42581568481', // 新しく追加された写真
-            '42530415872', // 新しく追加された写真
-            '41177730075'  // 新しく追加された写真
-        ];
-        
-        // 写真IDから直接画像URLを構築
-        const flickrPhotos = [];
-        
-        // 手動設定された完全なFlickr画像URL（高品質）
-        const directFlickrUrls = [
-            // 元の写真ID 30157100788
-            'https://live.staticflickr.com/1973/30157100788_b1a2c3d4e5_b.jpg',
-            'https://live.staticflickr.com/1973/30157100788_b1a2c3d4e5_c.jpg',
+        try {
+            console.log('📸 Fetching sogoods Flickr photos via server API...');
             
-            // 新しい写真ID用の推測URL（複数パターンを試行）
-            'https://live.staticflickr.com/65535/41992530634_000000000_b.jpg',
-            'https://live.staticflickr.com/65535/42581572701_000000000_b.jpg', 
-            'https://live.staticflickr.com/65535/42581568481_000000000_b.jpg',
-            'https://live.staticflickr.com/65535/42530415872_000000000_b.jpg',
-            'https://live.staticflickr.com/65535/41177730075_000000000_b.jpg'
-        ];
-        
-        // Flickr画像URL構築の代替パターンを試行
-        for (const photoId of sogoodsPhotoIds) {
-            const possibleUrls = [
-                // 一般的なFlickr URLパターン
-                `https://live.staticflickr.com/65535/${photoId}_b1a2c3d4e5_b.jpg`,
-                `https://live.staticflickr.com/1973/${photoId}_b1a2c3d4e5_b.jpg`,
-                `https://live.staticflickr.com/7494/${photoId}_b1a2c3d4e5_b.jpg`,
-                `https://live.staticflickr.com/8665/${photoId}_b1a2c3d4e5_b.jpg`,
-            ];
+            const response = await fetch('/api/flickr-photos');
             
-            for (const url of possibleUrls) {
-                // 実際の確認は後で行う
-                flickrPhotos.push(url);
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}`);
             }
-        }
-        
-        // Flickr写真のみを使用（Unsplashフォールバックを削除）
-        const allPhotos = [...directFlickrUrls, ...flickrPhotos];
-        
-        // 各URLの有効性をチェック（Flickr写真のみ）
-        const validPhotos = [];
-        for (const photoUrl of allPhotos.slice(0, 20)) { // Flickr写真をより多くテスト
-            try {
-                const isValid = await this.checkImageUrl(photoUrl);
-                if (isValid) {
-                    validPhotos.push(photoUrl);
-                }
-            } catch (error) {
-                // Flickr写真のみなので、エラー時は追加しない
-                console.log(`🔍 Flickr URL check failed: ${photoUrl}`);
+            
+            const data = await response.json();
+            
+            if (data.success && data.photos && data.photos.length > 0) {
+                const photoUrls = data.photos.map(photo => photo.url);
+                console.log(`✅ Server Flickr API: Retrieved ${photoUrls.length} photos from ${data.sourcePhotoIds} IDs`);
+                console.log('📷 Flickr photos:', photoUrls.slice(0, 3).map(url => url.split('/').pop()));
+                return photoUrls;
+            } else {
+                console.warn('❌ No valid photos from server Flickr API');
+                return [];
             }
+            
+        } catch (error) {
+            console.warn('❌ Server Flickr API failed:', error.message);
+            return [];
         }
-        
-        console.log(`📸 Curated photos: ${validPhotos.length} photos (including ${sogoodsPhotoIds.length} Flickr IDs)`);
-        return validPhotos;
     }
 
     // アップロードされた写真をランダム表示に追加
@@ -348,34 +311,65 @@ class PhotoManager {
         }
     }
 
-    // Flickr写真IDから画像URLを構築（推測ベース）
+    // Flickr写真IDから画像URLを構築（oEmbed API使用）
     async getFlickrImageUrls(photoIds) {
         const imageUrls = [];
         
+        console.log(`🔍 Fetching ${photoIds.length} photos via oEmbed API...`);
+        
         for (const photoId of photoIds) {
-            // Flickr oEmbed APIを使用してメタデータを取得
             try {
-                const oembedUrl = `https://www.flickr.com/services/oembed/?url=https://www.flickr.com/photos/sogoods/${photoId}/&format=json`;
+                // Flickr oEmbed APIを使用してメタデータを取得
+                const oembedUrl = `https://www.flickr.com/services/oembed/?url=https://www.flickr.com/photos/sogoods/${photoId}/&format=json&maxwidth=1024`;
+                
+                console.log(`🔗 Trying oEmbed for ${photoId}...`);
                 const response = await fetch(oembedUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
                 
                 if (data.url) {
                     // oEmbedから取得したURLをより高解像度に変換
                     let imageUrl = data.url;
-                    if (imageUrl.includes('_m.jpg')) {
-                        imageUrl = imageUrl.replace('_m.jpg', '_b.jpg'); // Large size
-                    } else if (imageUrl.includes('_n.jpg')) {
-                        imageUrl = imageUrl.replace('_n.jpg', '_b.jpg');
-                    } else if (imageUrl.includes('_q.jpg')) {
-                        imageUrl = imageUrl.replace('_q.jpg', '_b.jpg');
+                    
+                    // 様々なサイズパターンをより高解像度に変換
+                    const sizeUpgrades = [
+                        ['_m.jpg', '_b.jpg'],    // Medium -> Large
+                        ['_n.jpg', '_b.jpg'],    // Small -> Large  
+                        ['_q.jpg', '_c.jpg'],    // Square -> Medium 800
+                        ['_s.jpg', '_c.jpg'],    // Small square -> Medium 800
+                        ['_t.jpg', '_c.jpg'],    // Thumbnail -> Medium 800
+                        ['_z.jpg', '_b.jpg']     // Medium 640 -> Large
+                    ];
+                    
+                    for (const [from, to] of sizeUpgrades) {
+                        if (imageUrl.includes(from)) {
+                            imageUrl = imageUrl.replace(from, to);
+                            break;
+                        }
                     }
                     
-                    imageUrls.push(imageUrl);
-                    console.log(`✅ Flickr oEmbed: Retrieved ${photoId} -> ${imageUrl}`);
+                    // URL の有効性を確認
+                    const isValid = await this.validateImageUrl(imageUrl);
+                    if (isValid) {
+                        imageUrls.push(imageUrl);
+                        console.log(`✅ oEmbed Success: ${photoId} -> ${imageUrl}`);
+                    } else {
+                        console.log(`❌ oEmbed Invalid: ${photoId} -> ${imageUrl}`);
+                    }
+                } else {
+                    console.warn(`⚠️ oEmbed No URL: ${photoId}`);
                 }
+                
             } catch (error) {
-                console.warn(`⚠️ Flickr oEmbed failed for ${photoId}:`, error.message);
+                console.warn(`❌ oEmbed Failed: ${photoId} - ${error.message}`);
             }
+            
+            // APIレート制限回避のため少し待機
+            await new Promise(resolve => setTimeout(resolve, 200));
         }
         
         return imageUrls;
@@ -424,7 +418,7 @@ class PhotoManager {
         }
     }
 
-    // Flickr画像URLの有効性をチェック
+    // Flickr画像URLの有効性をチェック（旧版）
     async checkImageUrl(url) {
         try {
             const response = await fetch(url, { 
@@ -435,6 +429,32 @@ class PhotoManager {
         } catch (error) {
             return false;
         }
+    }
+
+    // より確実な画像URL検証（新版）
+    async validateImageUrl(url) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(true);
+            img.onerror = () => resolve(false);
+            
+            // タイムアウト設定（5秒）
+            const timeout = setTimeout(() => {
+                resolve(false);
+            }, 5000);
+            
+            img.onload = () => {
+                clearTimeout(timeout);
+                resolve(true);
+            };
+            
+            img.onerror = () => {
+                clearTimeout(timeout);
+                resolve(false);
+            };
+            
+            img.src = url;
+        });
     }
 
     // フォルダ内の画像ファイルリストを取得（廃止予定 - Flickr APIに移行）

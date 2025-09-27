@@ -9,6 +9,20 @@ const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs').promises;
 const cors = require('cors');
+const https = require('https'); // HTTPSリクエスト用（フォールバック）
+
+// Flickr API用のHTTPクライアント（Node.js 18+の場合はfetchが組み込み）
+let fetch;
+try {
+    if (typeof globalThis.fetch !== 'undefined') {
+        fetch = globalThis.fetch;
+    } else {
+        fetch = require('node-fetch');
+    }
+} catch (error) {
+    console.log('⚠️ fetch not available, will use https module fallback');
+    fetch = null;
+}
 
 const app = express();
 const port = process.env.PORT || 8081;
@@ -51,6 +65,142 @@ async function ensurePhotosDir() {
         console.log('📁 Created photos/miiko directory');
     }
 }
+
+// HTTPSリクエストのフォールバック関数
+function httpsGetJson(url) {
+    return new Promise((resolve, reject) => {
+        https.get(url, (res) => {
+            let data = '';
+            
+            res.on('data', (chunk) => {
+                data += chunk;
+            });
+            
+            res.on('end', () => {
+                try {
+                    const json = JSON.parse(data);
+                    resolve({ 
+                        ok: res.statusCode >= 200 && res.statusCode < 300, 
+                        status: res.statusCode,
+                        json: () => Promise.resolve(json)
+                    });
+                } catch (error) {
+                    reject(new Error('JSON parse error: ' + error.message));
+                }
+            });
+        }).on('error', (err) => {
+            reject(err);
+        });
+    });
+}
+
+// Flickr oEmbed API プロキシエンドポイント
+app.get('/api/flickr-photos', async (req, res) => {
+    try {
+        console.log('📸 Server-side Flickr photo fetch requested');
+        
+        // sogoods Flickr写真ID一覧
+        const photoIds = [
+            '30157100788',
+            '41992530634', 
+            '42581572701',
+            '42581568481',
+            '42530415872',
+            '41177730075'
+        ];
+        
+        const validPhotos = [];
+        
+        for (const photoId of photoIds) {
+            try {
+                const oembedUrl = `https://www.flickr.com/services/oembed/?url=https://www.flickr.com/photos/sogoods/${photoId}/&format=json&maxwidth=1024`;
+                
+                console.log(`🔗 Fetching oEmbed for ${photoId}...`);
+                
+                let response, data;
+                
+                if (fetch) {
+                    // fetch を使用
+                    response = await fetch(oembedUrl, {
+                        headers: {
+                            'User-Agent': 'sogoods.net/1.0 (PhotoManager)'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    data = await response.json();
+                } else {
+                    // httpsモジュールのフォールバックを使用
+                    response = await httpsGetJson(oembedUrl);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    
+                    data = await response.json();
+                }
+                
+                if (data.url) {
+                    let imageUrl = data.url;
+                    
+                    // より高解像度に変換
+                    const sizeUpgrades = [
+                        ['_m.jpg', '_b.jpg'],
+                        ['_n.jpg', '_b.jpg'],  
+                        ['_q.jpg', '_c.jpg'],
+                        ['_s.jpg', '_c.jpg'],
+                        ['_t.jpg', '_c.jpg'],
+                        ['_z.jpg', '_b.jpg']
+                    ];
+                    
+                    for (const [from, to] of sizeUpgrades) {
+                        if (imageUrl.includes(from)) {
+                            imageUrl = imageUrl.replace(from, to);
+                            break;
+                        }
+                    }
+                    
+                    validPhotos.push({
+                        id: photoId,
+                        url: imageUrl,
+                        title: data.title || `sogoods photo ${photoId}`,
+                        source: 'flickr_oembed'
+                    });
+                    
+                    console.log(`✅ Flickr oEmbed: ${photoId} -> ${imageUrl}`);
+                } else {
+                    console.log(`⚠️ No URL in oEmbed response for ${photoId}`);
+                }
+                
+            } catch (error) {
+                console.warn(`❌ Flickr oEmbed failed for ${photoId}:`, error.message);
+            }
+            
+            // API率制限回避
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        console.log(`📸 Server Flickr fetch complete: ${validPhotos.length}/${photoIds.length} photos`);
+        
+        res.json({
+            success: true,
+            photos: validPhotos,
+            totalCount: validPhotos.length,
+            sourcePhotoIds: photoIds.length
+        });
+        
+    } catch (error) {
+        console.error('❌ Server Flickr API error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            photos: []
+        });
+    }
+});
 
 // ファイル名の生成（重複を避ける）
 async function generateUniqueFileName(originalName) {
