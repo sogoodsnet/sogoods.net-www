@@ -1,0 +1,37 @@
+# sogoods.net 設定ファイル
+
+# PHP設定
+php_value upload_max_filesize 10M
+php_value post_max_size 12M
+php_value max_execution_time 300
+php_value memory_limit 128M
+
+# 画像ファイルのキャッシュ設定
+<FilesMatch "\.(jpg|jpeg|png|gif|webp)$">
+    ExpiresActive On
+    ExpiresDefault "access plus 1 month"
+    Header append Cache-Control "public"
+</FilesMatch>
+
+# photo-list.jsのキャッシュを短く設定（動的更新のため）
+<FilesMatch "photo-list\.js$">
+    ExpiresActive On
+    ExpiresDefault "access plus 5 minutes"
+    Header append Cache-Control "public, must-revalidate"
+</FilesMatch>
+
+# 管理ファイルのセキュリティ
+<FilesMatch "(update-photo-list\.php|photo-admin\.php)$">
+    # IP制限等を必要に応じて追加
+    # Require ip 127.0.0.1
+</FilesMatch>
+
+# ディレクトリブラウジング禁止
+Options -Indexes
+
+# エラーページ設定
+ErrorDocument 404 /index.html
+ErrorDocument 403 /index.html
+
+# MIME タイプ設定
+AddType image/webp .webp

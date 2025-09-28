@@ -3565,16 +3565,10 @@
             }
         }
 
-        // メイン画像管理システム（簡素化版）
+        // メイン画像管理システム（動的読み込み対応版）
         class MainImageSystem {
             constructor() {
-                this.mainImages = [
-                    '129-DSCN9004.JPG',
-                    '1758928793445-2D3DD0DA-ABA9-44F8-B090-558ADB3E9F42.jpeg',
-                    '1758932572782-032-DSC_1023.JPG.jpg',
-                    '21-DSC_2098.JPG',
-                    '30-DSC_8602.JPG'
-                ];
+                this.mainImages = []; // 動的に読み込み
                 this.baseUrl = 'https://sogoods.net/photos/main/';
                 this.mainImageElement = document.getElementById('main-image');
                 this.fallbackImages = [
@@ -3582,17 +3576,95 @@
                     'https://images.unsplash.com/photo-1583336663277-620dc1996580?w=800&h=600&fit=crop',
                     'https://images.unsplash.com/photo-1571566882372-1598d88abd90?w=800&h=600&fit=crop'
                 ];
+                this.photoListUpdateInterval = null;
                 this.init();
             }
 
-            init() {
+            async init() {
                 console.log('🖼️ Main Image System initialized');
+                
+                // 写真リストを動的に読み込み
+                await this.loadPhotoList();
+                
                 this.displayRandomImage();
                 
                 // 30秒ごとに画像を変更
                 setInterval(() => {
                     this.displayRandomImage();
                 }, 30000);
+                
+                // 5分ごとに写真リストを更新チェック
+                this.photoListUpdateInterval = setInterval(() => {
+                    this.checkPhotoListUpdates();
+                }, 300000); // 5分
+            }
+
+            // 動的写真リスト読み込み
+            async loadPhotoList() {
+                try {
+                    console.log('📋 Loading dynamic photo list...');
+                    
+                    // photo-list.jsを読み込み（キャッシュ無効化）
+                    const timestamp = new Date().getTime();
+                    const response = await fetch(`/photos/photo-list.js?t=${timestamp}`);
+                    
+                    if (response.ok) {
+                        const scriptText = await response.text();
+                        
+                        // 既存のsogoodsPhotoListをクリア
+                        if (window.sogoodsPhotoList) {
+                            delete window.sogoodsPhotoList;
+                        }
+                        
+                        // 新しいリストを読み込み
+                        eval(scriptText);
+                        
+                        if (window.sogoodsPhotoList && window.sogoodsPhotoList.main) {
+                            this.mainImages = window.sogoodsPhotoList.main;
+                            console.log(`✅ Loaded ${this.mainImages.length} main photos dynamically`);
+                            console.log(`📅 Last updated: ${window.sogoodsPhotoList.lastUpdated}`);
+                            return true;
+                        }
+                    }
+                    
+                    throw new Error('Photo list not available');
+                    
+                } catch (error) {
+                    console.warn('⚠️ Dynamic photo loading failed:', error.message);
+                    
+                    // フォールバック: ハードコードされた画像リスト
+                    this.mainImages = [
+                        '129-DSCN9004.JPG',
+                        '1758928793445-2D3DD0DA-ABA9-44F8-B090-558ADB3E9F42.jpeg',
+                        '1758932572782-032-DSC_1023.JPG.jpg',
+                        '21-DSC_2098.JPG',
+                        '30-DSC_8602.JPG'
+                    ];
+                    console.log('🔄 Using fallback image list');
+                    return false;
+                }
+            }
+
+            // 写真リスト更新チェック
+            async checkPhotoListUpdates() {
+                try {
+                    const previousCount = this.mainImages.length;
+                    await this.loadPhotoList();
+                    const currentCount = this.mainImages.length;
+                    
+                    if (currentCount !== previousCount) {
+                        console.log(`📸 Photo list updated: ${previousCount} → ${currentCount} photos`);
+                        
+                        // 新しい写真がある場合はすぐに表示
+                        if (currentCount > previousCount) {
+                            setTimeout(() => {
+                                this.displayRandomImage();
+                            }, 2000);
+                        }
+                    }
+                } catch (error) {
+                    console.warn('⚠️ Photo list update check failed:', error);
+                }
             }
 
             async displayRandomImage() {
