@@ -64,17 +64,79 @@
             object-fit: contain;
         }
 
-        /* SOGOODS.NETテキスト - ギリギリ最大サイズ */
+        /* SOGOODS.NETテキスト - 位置を少し下に */
         .extr-text {
             font-size: 48px;
             font-weight: 900;
             color: #000;
-            margin: 15px 0;
+            margin: 35px 0 20px 0; /* 上マージンを15px→35px、下マージン20pxに変更 */
             font-family: Arial, sans-serif;
             letter-spacing: -4px;
             line-height: 0.8;
             text-transform: uppercase;
             word-break: break-all;
+        }
+
+        /* メニューロゴエリア */
+        .menu-logos {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 25px;
+            padding: 0;
+        }
+
+        /* メニューボタン共通スタイル */
+        .menu-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            font-family: Arial, sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+            border: none;
+            cursor: pointer;
+        }
+
+        .menu-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.5);
+            background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%);
+        }
+
+        .menu-btn:active {
+            transform: translateY(0);
+        }
+
+        /* MAPSボタンのスタイル */
+        .maps-btn {
+            background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+        }
+
+        .maps-btn:hover {
+            background: linear-gradient(135deg, #388E3C 0%, #2E7D32 100%);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.5);
+        }
+
+        .btn-icon {
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+        }
+
+        .btn-text {
+            font-size: 10px;
+            font-weight: bold;
         }
 
         /* 左側のテキストブロック - フォントサイズを少し大きく */
@@ -884,6 +946,31 @@
             .tii-entries {
                 max-height: 200px;
             }
+
+            /* メニューボタンのモバイル対応 */
+            .menu-logos {
+                gap: 6px;
+                margin-bottom: 20px;
+            }
+
+            .menu-btn {
+                padding: 6px 10px;
+                font-size: 10px;
+                border-radius: 15px;
+            }
+
+            .btn-icon {
+                font-size: 12px;
+            }
+
+            .btn-text {
+                font-size: 9px;
+            }
+
+            .extr-text {
+                font-size: 42px;
+                margin: 25px 0 15px 0;
+            }
         }
     </style>
     <!-- 静的写真リスト -->
@@ -896,6 +983,14 @@
             <!-- 左上のロゴを削除（青い丸がロゴ代わりに） -->
             
             <div class="extr-text">SOGOODS.NET</div>
+            
+            <!-- メニューロゴエリア -->
+            <div class="menu-logos">
+                <a href="https://www.google.com/maps/contrib/110888846867377060754/photos/@45.8829971,54.1250407,3z/data=!3m1!4b1!4m3!8m2!3m1!1e2?entry=ttu&g_ep=EgoyMDI1MDkyNC4wIKXMDSoASAFQAw%3D%3D" target="_blank" class="menu-btn maps-btn">
+                    <span class="btn-icon">🗺️</span>
+                    <span class="btn-text">MAPS</span>
+                </a>
+            </div>
             
             <div class="text-content">
                 <p>暮らし 質素でも良い。住まいは広すぎず、技術は最新のものを取り入れ、道具は長く使えて愛着があり、社会とは投資を通じて関わり、仕事を通して接する。</p>
