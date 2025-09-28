@@ -886,6 +886,8 @@
             }
         }
     </style>
+    <!-- 静的写真リスト -->
+    <script src="/photos/photo-list.js"></script>
 </head>
 <body>
     <div class="main-container">
@@ -1802,25 +1804,38 @@
                 console.log(`📦 Storage mode: ${this.serverStorageEnabled ? 'Server-side (/photos/miiko/)' : 'Browser-only (localStorage)'}`);
             }
 
-            // 写真リストを動的に読み込み（Flickr API + サーバーストレージ）
+            // 写真リストを動的に読み込み（静的フォルダ + API）
             async loadPhotoList() {
                 try {
                     console.log('📸 Loading photos from multiple sources...');
                     
-                    // サーバーストレージから写真を取得
+                    // 静的写真フォルダから写真を取得
+                    const staticPhotos = await this.loadStaticPhotos();
+                    
+                    // サーバーストレージから写真を取得（フォールバック）
                     const serverPhotos = await this.loadServerPhotos();
                     
-                    // Flickrから写真を取得
+                    // Flickrから写真を取得（フォールバック）
                     const flickrPhotos = await this.fetchFlickrPhotos();
                     
-                    // 写真を統合
+                    // 静的フォルダの写真が最優先
+                    if (staticPhotos.mainPhotos.length > 0 || staticPhotos.galleryPhotos.length > 0) {
+                        this.miikoPhotos = staticPhotos.mainPhotos;
+                        this.galleryPhotos = staticPhotos.galleryPhotos;
+                        
+                        this.stats.totalPhotos = staticPhotos.mainPhotos.length + staticPhotos.galleryPhotos.length + this.uploadedPhotos.length;
+                        console.log(`📷 Static photos loaded: ${staticPhotos.mainPhotos.length} main, ${staticPhotos.galleryPhotos.length} gallery, ${this.uploadedPhotos.length} uploaded`);
+                        console.log(`📦 Storage mode: Static folders (/photos/main/, /photos/gallery/)`);
+                        return;
+                    }
+                    
+                    // フォールバック：サーバーAPI + Flickr
                     let allPhotos = [...serverPhotos];
                     
                     if (flickrPhotos && flickrPhotos.length > 0) {
                         allPhotos = [...allPhotos, ...flickrPhotos];
                         console.log(`📷 Combined: ${serverPhotos.length} server + ${flickrPhotos.length} Flickr photos`);
                     } else if (serverPhotos.length === 0) {
-                        // サーバーもFlickrも空の場合のフォールバック
                         console.log('⚠️ No server or Flickr photos, using sample photos');
                         allPhotos = this.getSamplePhotos();
                     }
@@ -1841,14 +1856,57 @@
                     }
                     
                 } catch (error) {
-                    console.warn('📁 Flickr API failed, using sample photos:', error.message);
+                    console.warn('📁 Photo loading failed, using sample photos:', error.message);
                     this.miikoPhotos = this.getSamplePhotos();
                     this.galleryPhotos = [];
                     this.stats.totalPhotos = this.miikoPhotos.length + this.uploadedPhotos.length;
                 }
             }
 
-            // サーバーから写真リストを取得
+            // 静的写真フォルダから写真を取得
+            async loadStaticPhotos() {
+                try {
+                    console.log('📁 Loading static photos from /photos/ folders...');
+                    
+                    // 静的写真リストを読み込み
+                    const response = await fetch('/photos/photo-list.js');
+                    
+                    if (response.ok) {
+                        const scriptText = await response.text();
+                        
+                        // photo-list.jsをevalで実行（セキュア環境なのでOK）
+                        eval(scriptText);
+                        
+                        if (window.sogoodsPhotoList) {
+                            const mainPhotos = window.sogoodsPhotoList.main.map(filename => 
+                                `/photos/main/${filename}`
+                            );
+                            const galleryPhotos = window.sogoodsPhotoList.gallery.map(filename => 
+                                `/photos/gallery/${filename}`
+                            );
+                            
+                            console.log(`✅ Static photos loaded: ${mainPhotos.length} main, ${galleryPhotos.length} gallery`);
+                            console.log(`📅 Last updated: ${window.sogoodsPhotoList.lastUpdated}`);
+                            
+                            return {
+                                mainPhotos,
+                                galleryPhotos
+                            };
+                        }
+                    }
+                    
+                    throw new Error('Photo list not available');
+                    
+                } catch (error) {
+                    console.warn('⚠️ Static photo loading failed:', error.message);
+                    return {
+                        mainPhotos: [],
+                        galleryPhotos: []
+                    };
+                }
+            }
+
+            // サーバーから写真リストを取得（フォールバック用）
             async loadServerPhotos() {
                 if (!this.serverStorageEnabled) return [];
 
