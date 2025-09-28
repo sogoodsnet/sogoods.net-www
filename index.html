@@ -117,17 +117,38 @@
             transform: translateY(0);
         }
 
-        /* MAPSボタンのスタイル */
-        .maps-btn {
-            background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
-            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+        /* MAPS画像ボタンのスタイル */
+        .maps-img-btn {
+            display: inline-block;
+            padding: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
         }
 
-        .maps-btn:hover {
-            background: linear-gradient(135deg, #388E3C 0%, #2E7D32 100%);
-            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.5);
+        .maps-img-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            border-color: rgba(0, 0, 0, 0.2);
         }
 
+        .maps-img-btn:active {
+            transform: translateY(0);
+        }
+
+        .maps-img {
+            display: block;
+            width: auto;
+            height: 32px; /* 適切なサイズに調整 */
+            max-width: 100%;
+            object-fit: contain;
+        }
+
+        /* 旧CSSボタンスタイル（予備） */
         .btn-icon {
             font-size: 14px;
             display: flex;
@@ -959,6 +980,15 @@
                 border-radius: 15px;
             }
 
+            .maps-img-btn {
+                padding: 3px;
+                border-radius: 6px;
+            }
+
+            .maps-img {
+                height: 28px; /* モバイルでは少し小さく */
+            }
+
             .btn-icon {
                 font-size: 12px;
             }
@@ -986,9 +1016,8 @@
             
             <!-- メニューロゴエリア -->
             <div class="menu-logos">
-                <a href="https://www.google.com/maps/contrib/110888846867377060754/photos/@45.8829971,54.1250407,3z/data=!3m1!4b1!4m3!8m2!3m1!1e2?entry=ttu&g_ep=EgoyMDI1MDkyNC4wIKXMDSoASAFQAw%3D%3D" target="_blank" class="menu-btn maps-btn">
-                    <span class="btn-icon">🗺️</span>
-                    <span class="btn-text">MAPS</span>
+                <a href="https://www.google.com/maps/contrib/110888846867377060754/photos/@45.8829971,54.1250407,3z/data=!3m1!4b1!4m3!8m2!3m1!1e2?entry=ttu&g_ep=EgoyMDI1MDkyNC4wIKXMDSoASAFQAw%3D%3D" target="_blank" class="maps-img-btn">
+                    <img src="/img/button/maps.png" alt="Maps" class="maps-img" />
                 </a>
             </div>
             
