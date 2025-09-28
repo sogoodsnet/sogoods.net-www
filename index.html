@@ -1512,6 +1512,11 @@
             const numbers = document.querySelectorAll('.number');
             
             numbers.forEach((number, index) => {
+                // Store original number for reset
+                if (!number.getAttribute('data-original-number')) {
+                    number.setAttribute('data-original-number', number.textContent);
+                }
+                
                 let isTransformed = false;
                 let hoverTimeout;
                 
@@ -1585,7 +1590,10 @@
 
         function resetToNumber(element, index) {
             element.classList.remove('tanka-mode');
-            element.textContent = element.getAttribute('data-original-number') || (index + 1);
+            element.classList.remove('grabbed');
+            const originalNumber = element.getAttribute('data-original-number');
+            element.textContent = originalNumber;
+            console.log(`🔢 Reset to original number: ${originalNumber}`);
         }
 
         function grabTanka(element, index) {
@@ -3715,7 +3723,8 @@
         document.addEventListener('DOMContentLoaded', () => {
             window.photoManager = new PhotoManager();
             window.imageDropHandler = new ImageDropHandler(window.photoManager);
-            window.numberAnimationSystem = new NumberAnimationSystem();
+            // 数字アニメーションを無効化して元の短歌ホバー動作に戻す
+            // window.numberAnimationSystem = new NumberAnimationSystem();
             window.mainImageSystem = new MainImageSystem();
             
             // 開発時のヘルプ表示
