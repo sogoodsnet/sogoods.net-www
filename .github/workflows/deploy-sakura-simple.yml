@@ -8,11 +8,15 @@ on:
       - '*.html'
       - '*.css'
       - '*.js'
+      - '*.php'
       - '*.csv'
       - '*.json'
       - '*.md'
+      - '.htaccess'
       - 'assets/**'
       - 'functions/**'
+      - 'img/**'
+      - 'photos/**'
 
 jobs:
   complete-deploy:
@@ -43,7 +47,10 @@ jobs:
           mkdir -p $HOME/www
           mkdir -p $HOME/www/assets/logo
           mkdir -p $HOME/www/functions/api
+          mkdir -p $HOME/www/photos/main
+          mkdir -p $HOME/www/photos/gallery
           mkdir -p $HOME/www/photos/miiko
+          mkdir -p $HOME/www/img/button
           mkdir -p $HOME/backup/$(date +%Y%m%d_%H%M%S)
           
           cd $HOME/www
@@ -98,6 +105,49 @@ jobs:
           fetch -q -o logo.png https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/assets/logo/logo.png || curl -s -o logo.png https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/assets/logo/logo.png 2>/dev/null || echo "Logo not found (OK)"
           cd ../..
           
+          # Image buttons and icons
+          echo "🎨 Downloading image buttons..."
+          cd img/button
+          fetch -q -o maps.png https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/img/button/maps.png || curl -s -o maps.png https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/img/button/maps.png 2>/dev/null || echo "Maps button not found (OK)"
+          fetch -q -o maps_original.jpg https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/img/button/maps_original.jpg || curl -s -o maps_original.jpg https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/img/button/maps_original.jpg 2>/dev/null || echo "Original maps image not found (OK)"
+          cd ../..
+          
+          # Photo system files
+          echo "📸 Downloading photo system files..."
+          cd photos
+          fetch -q -o photo-list.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/photo-list.js || curl -s -o photo-list.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/photo-list.js 2>/dev/null || echo "Photo list not found (OK)"
+          
+          # Main photos
+          echo "📷 Downloading main photos..."
+          cd main
+          fetch -q -o "129-DSCN9004.JPG" "https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/main/129-DSCN9004.JPG" || curl -s -o "129-DSCN9004.JPG" "https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/main/129-DSCN9004.JPG" 2>/dev/null || echo "Photo 1 not found (OK)"
+          fetch -q -o "1758928793445-2D3DD0DA-ABA9-44F8-B090-558ADB3E9F42.jpeg" "https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/main/1758928793445-2D3DD0DA-ABA9-44F8-B090-558ADB3E9F42.jpeg" || curl -s -o "1758928793445-2D3DD0DA-ABA9-44F8-B090-558ADB3E9F42.jpeg" "https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/main/1758928793445-2D3DD0DA-ABA9-44F8-B090-558ADB3E9F42.jpeg" 2>/dev/null || echo "Photo 2 not found (OK)"
+          fetch -q -o "1758932572782-032-DSC_1023.JPG.jpg" "https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/main/1758932572782-032-DSC_1023.JPG.jpg" || curl -s -o "1758932572782-032-DSC_1023.JPG.jpg" "https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/main/1758932572782-032-DSC_1023.JPG.jpg" 2>/dev/null || echo "Photo 3 not found (OK)"
+          fetch -q -o "21-DSC_2098.JPG" "https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/main/21-DSC_2098.JPG" || curl -s -o "21-DSC_2098.JPG" "https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/main/21-DSC_2098.JPG" 2>/dev/null || echo "Photo 4 not found (OK)"
+          fetch -q -o "30-DSC_8602.JPG" "https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/main/30-DSC_8602.JPG" || curl -s -o "30-DSC_8602.JPG" "https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/main/30-DSC_8602.JPG" 2>/dev/null || echo "Photo 5 not found (OK)"
+          cd ..
+          
+          # Gallery photos
+          echo "🖼️ Downloading gallery photos..."
+          cd gallery
+          fetch -q -o "129-DSCN9004.JPG" "https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/gallery/129-DSCN9004.JPG" || curl -s -o "129-DSCN9004.JPG" "https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/gallery/129-DSCN9004.JPG" 2>/dev/null || echo "Gallery photo 1 not found (OK)"
+          fetch -q -o "1758928793445-2D3DD0DA-ABA9-44F8-B090-558ADB3E9F42.jpeg" "https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/gallery/1758928793445-2D3DD0DA-ABA9-44F8-B090-558ADB3E9F42.jpeg" || curl -s -o "1758928793445-2D3DD0DA-ABA9-44F8-B090-558ADB3E9F42.jpeg" "https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/gallery/1758928793445-2D3DD0DA-ABA9-44F8-B090-558ADB3E9F42.jpeg" 2>/dev/null || echo "Gallery photo 2 not found (OK)"
+          fetch -q -o "1758932572782-032-DSC_1023.JPG.jpg" "https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/gallery/1758932572782-032-DSC_1023.JPG.jpg" || curl -s -o "1758932572782-032-DSC_1023.JPG.jpg" "https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/gallery/1758932572782-032-DSC_1023.JPG.jpg" 2>/dev/null || echo "Gallery photo 3 not found (OK)"
+          fetch -q -o "21-DSC_2098.JPG" "https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/gallery/21-DSC_2098.JPG" || curl -s -o "21-DSC_2098.JPG" "https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/gallery/21-DSC_2098.JPG" 2>/dev/null || echo "Gallery photo 4 not found (OK)"
+          fetch -q -o "30-DSC_8602.JPG" "https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/gallery/30-DSC_8602.JPG" || curl -s -o "30-DSC_8602.JPG" "https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/gallery/30-DSC_8602.JPG" 2>/dev/null || echo "Gallery photo 5 not found (OK)"
+          cd ../..
+          
+          # PHP Photo Management System
+          echo "🗂️ Downloading PHP photo management system..."
+          fetch -q -o .htaccess https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/.htaccess || curl -s -o .htaccess https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/.htaccess 2>/dev/null || echo ".htaccess not found (OK)"
+          fetch -q -o photo-admin.php https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photo-admin.php || curl -s -o photo-admin.php https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photo-admin.php 2>/dev/null || echo "photo-admin.php not found (OK)"
+          fetch -q -o update-photo-list.php https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/update-photo-list.php || curl -s -o update-photo-list.php https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/update-photo-list.php 2>/dev/null || echo "update-photo-list.php not found (OK)"
+          fetch -q -o PHOTO_MANAGEMENT.md https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/PHOTO_MANAGEMENT.md || curl -s -o PHOTO_MANAGEMENT.md https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/PHOTO_MANAGEMENT.md 2>/dev/null || echo "PHOTO_MANAGEMENT.md not found (OK)"
+          
+          # Additional scripts
+          echo "📜 Downloading additional scripts..."
+          fetch -q -o generate-photo-list.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/generate-photo-list.js || curl -s -o generate-photo-list.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/generate-photo-list.js 2>/dev/null || echo "Photo list generator not found (OK)"
+          
           # Documentation
           echo "📚 Downloading documentation..."
           fetch -q -o README.md https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/README.md || curl -s -o README.md https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/README.md
@@ -107,9 +157,14 @@ jobs:
           find . -type f -name "*.html" -exec chmod 644 {} \;
           find . -type f -name "*.css" -exec chmod 644 {} \;
           find . -type f -name "*.js" -exec chmod 644 {} \;
+          find . -type f -name "*.php" -exec chmod 644 {} \;
           find . -type f -name "*.csv" -exec chmod 644 {} \;
           find . -type f -name "*.json" -exec chmod 644 {} \;
           find . -type f -name "*.md" -exec chmod 644 {} \;
+          find . -type f -name ".htaccess" -exec chmod 644 {} \;
+          find . -type f -name "*.jpg" -exec chmod 644 {} \; 2>/dev/null || true
+          find . -type f -name "*.jpeg" -exec chmod 644 {} \; 2>/dev/null || true
+          find . -type f -name "*.png" -exec chmod 644 {} \; 2>/dev/null || true
           find . -type f -name "*" -exec chmod 644 {} \; 2>/dev/null || true
           find . -type d -exec chmod 755 {} \;
           
@@ -127,10 +182,20 @@ jobs:
           echo "=== Functions directory ==="
           ls -la functions/api/ 2>/dev/null || echo "No functions directory"
           echo ""
+          echo "=== Image buttons directory ==="
+          ls -la img/button/ 2>/dev/null || echo "No img/button directory"
+          echo ""
+          echo "=== Photos directory structure ==="
+          ls -la photos/ 2>/dev/null || echo "No photos directory"
+          echo "=== Photos/main directory ==="
+          ls -la photos/main/ 2>/dev/null || echo "No photos/main directory"
+          echo "=== Photos/gallery directory ==="
+          ls -la photos/gallery/ 2>/dev/null || echo "No photos/gallery directory"
+          echo ""
           
           # File size check
           echo "📊 File sizes:"
-          ls -lah *.html *.css *.js *.csv *.json 2>/dev/null || echo "Some files missing (may be normal)"
+          ls -lah *.html *.css *.js *.php *.csv *.json .htaccess 2>/dev/null || echo "Some files missing (may be normal)"
           
           # Content verification
           echo "📄 Content verification:"
@@ -195,7 +260,7 @@ jobs:
           echo "  - ☁️ Functions: Cloudflare API endpoints" >> $GITHUB_STEP_SUMMARY
           echo "  - 🖼️ Assets: Logos and images" >> $GITHUB_STEP_SUMMARY
           echo "  - ⚙️ Config: Headers, redirects, CNAME" >> $GITHUB_STEP_SUMMARY
-          echo "- **Features**: ✅ Admin login, Photo upload, Tanka system, TII database" >> $GITHUB_STEP_SUMMARY
+          echo "- **Features**: ✅ Admin login, Photo upload, PHP Photo Management, Tanka system, TII database" >> $GITHUB_STEP_SUMMARY
         else
           echo "- **Status**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
           echo "- **Check**: SSH connection, file downloads, or permissions" >> $GITHUB_STEP_SUMMARY
@@ -210,7 +275,14 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 🎯 Available Features:" >> $GITHUB_STEP_SUMMARY
         echo "1. 📷 Admin photo upload (drag & drop)" >> $GITHUB_STEP_SUMMARY
-        echo "2. 📝 Tanka poem display with voting" >> $GITHUB_STEP_SUMMARY
-        echo "3. 💬 TII database entries" >> $GITHUB_STEP_SUMMARY
-        echo "4. 🖼️ Dynamic photo galleries" >> $GITHUB_STEP_SUMMARY
-        echo "5. 📊 Real-time statistics" >> $GITHUB_STEP_SUMMARY
+        echo "2. 🗂️ **NEW: PHP Photo Management** - Access at /photo-admin.php" >> $GITHUB_STEP_SUMMARY
+        echo "3. 📝 Tanka poem display with voting" >> $GITHUB_STEP_SUMMARY
+        echo "4. 💬 TII database entries" >> $GITHUB_STEP_SUMMARY
+        echo "5. 🖼️ Dynamic photo galleries" >> $GITHUB_STEP_SUMMARY
+        echo "6. 📊 Real-time statistics" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🗂️ PHP Photo Management:" >> $GITHUB_STEP_SUMMARY
+        echo "- **Web Interface**: https://sogoodsnet.sakura.ne.jp/photo-admin.php" >> $GITHUB_STEP_SUMMARY
+        echo "- **Password**: sogoods2024" >> $GITHUB_STEP_SUMMARY
+        echo "- **Features**: Upload/delete photos, auto photo-list.js updates" >> $GITHUB_STEP_SUMMARY
+        echo "- **FTP Alternative**: Upload to /photos/main/ then run update-photo-list.php" >> $GITHUB_STEP_SUMMARY
