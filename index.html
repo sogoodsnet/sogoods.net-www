@@ -601,7 +601,7 @@
             font-style: italic;
         }
 
-        /* 投票ボタン */
+        /* 投票ボタン - 初期状態はグレースケール */
         .tanka-voting {
             display: flex;
             gap: 10px;
@@ -609,8 +609,8 @@
         }
 
         .vote-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: linear-gradient(135deg, #888 0%, #666 100%);
+            color: #ccc;
             border: none;
             padding: 8px 16px;
             border-radius: 20px;
@@ -623,26 +623,30 @@
             gap: 6px;
             min-width: 80px;
             justify-content: center;
+            filter: grayscale(100%);
         }
 
         .vote-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            filter: grayscale(0%);
+            color: white;
         }
 
         .like-btn {
-            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            background: linear-gradient(135deg, #888 0%, #666 100%);
         }
 
         .like-btn:hover {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
             box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
         }
 
         .dislike-btn {
-            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+            background: linear-gradient(135deg, #888 0%, #666 100%);
         }
 
         .dislike-btn:hover {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
             box-shadow: 0 5px 15px rgba(244, 67, 54, 0.4);
         }
 
@@ -1579,37 +1583,43 @@
             submitBtn.textContent = '投稿中...';
 
             try {
-                const response = await fetch('/api/tii-entries', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        content: content,
-                        author: author.value.trim() || '匿名'
-                    })
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.success) {
-                        console.log('✅ TII entry submitted successfully');
-                        
-                        // Clear form
-                        input.value = '';
-                        author.value = '';
-                        
-                        // Reload entries
-                        loadTIIEntries();
-                        
-                        // Visual feedback
-                        showTIIFeedback('投稿が完了しました！', 'success');
-                    } else {
-                        throw new Error(result.error);
-                    }
-                } else {
-                    throw new Error(`Server error: ${response.status}`);
+                // localStorage基盤での投稿処理
+                const authorName = author.value.trim() || '匿名';
+                const timestamp = new Date().toISOString();
+                
+                // 既存のエントリーを取得
+                const existingEntries = JSON.parse(localStorage.getItem('tii-entries') || '[]');
+                
+                // 新しいエントリーを作成
+                const newEntry = {
+                    id: Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                    content: content,
+                    author: authorName,
+                    timestamp: timestamp
+                };
+                
+                // 新しいエントリーを配列の先頭に追加（最新順）
+                existingEntries.unshift(newEntry);
+                
+                // 最大100エントリーに制限
+                if (existingEntries.length > 100) {
+                    existingEntries.splice(100);
                 }
+                
+                // localStorageに保存
+                localStorage.setItem('tii-entries', JSON.stringify(existingEntries));
+                
+                console.log('✅ TII entry submitted successfully to localStorage');
+                
+                // Clear form
+                input.value = '';
+                author.value = '';
+                
+                // Reload entries
+                loadTIIEntries();
+                
+                // Visual feedback
+                showTIIFeedback('投稿が完了しました！', 'success');
 
             } catch (error) {
                 console.error('❌ TII submission failed:', error);
@@ -1626,19 +1636,14 @@
             if (!entriesContainer) return;
 
             try {
-                const response = await fetch('/api/tii-entries');
+                // localStorageからエントリーを読み込み
+                const entries = JSON.parse(localStorage.getItem('tii-entries') || '[]');
                 
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.success) {
-                        displayTIIEntries(result.entries);
-                        console.log(`📝 Loaded ${result.entries.length} TII entries`);
-                    } else {
-                        throw new Error(result.error);
-                    }
-                } else {
-                    throw new Error(`Server error: ${response.status}`);
-                }
+                // エントリーを新しい順にソート
+                entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                
+                displayTIIEntries(entries);
+                console.log(`📝 Loaded ${entries.length} TII entries from localStorage`);
 
             } catch (error) {
                 console.error('❌ Failed to load TII entries:', error);
