@@ -221,6 +221,8 @@
             object-position: center center;
             filter: grayscale(100%) contrast(1.2);
             transition: all 0.5s ease;
+            display: block;
+            background: #f5f5f5;
         }
 
         /* 数字オーバーレイ */
@@ -266,9 +268,13 @@
                 opacity: 0;
                 transform: scale(0.5) translateY(20px);
             }
-            50% {
+            30% {
+                opacity: 0.7;
+                transform: scale(1.05) translateY(-3px);
+            }
+            60% {
                 opacity: 1;
-                transform: scale(1.1) translateY(-5px);
+                transform: scale(1.02) translateY(-1px);
             }
             100% { 
                 opacity: 1;
@@ -281,9 +287,13 @@
                 opacity: 1;
                 transform: scale(1) translateY(0);
             }
+            40% { 
+                opacity: 0.8;
+                transform: scale(0.98) translateY(-3px);
+            }
             100% { 
                 opacity: 0;
-                transform: scale(0.5) translateY(-20px);
+                transform: scale(0.5) translateY(-15px);
             }
         }
 
@@ -3518,9 +3528,9 @@
 
             startRandomAnimations() {
                 this.numbers.forEach((number, index) => {
-                    // 各数字に異なるランダム間隔を設定
-                    const randomDelay = Math.random() * 5000; // 0-5秒のランダム初期遅延
-                    const animationInterval = 3000 + Math.random() * 7000; // 3-10秒のランダム間隔
+                    // 各数字に異なるランダム間隔を設定（よりゆっくり）
+                    const randomDelay = Math.random() * 15000; // 0-15秒のランダム初期遅延
+                    const animationInterval = 10000 + Math.random() * 25000; // 10-35秒のランダム間隔
 
                     setTimeout(() => {
                         this.animateNumber(number, index);
@@ -3536,22 +3546,22 @@
             }
 
             animateNumber(number, index) {
-                // 浮上アニメーション
-                number.style.animation = 'numberFloat 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards';
+                // ゆっくりした浮上アニメーション
+                number.style.animation = 'numberFloat 2.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards';
                 
-                // 表示時間（1.5-3秒のランダム）
-                const displayTime = 1500 + Math.random() * 1500;
+                // 表示時間（5-10秒のランダム）
+                const displayTime = 5000 + Math.random() * 5000;
                 
                 setTimeout(() => {
-                    // 消失アニメーション
-                    number.style.animation = 'numberFade 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards';
+                    // ゆっくりした消失アニメーション
+                    number.style.animation = 'numberFade 3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards';
                     
                     setTimeout(() => {
                         number.style.animation = '';
-                    }, 600);
+                    }, 3000);
                 }, displayTime);
 
-                console.log(`💫 Number ${index + 1} animated`);
+                console.log(`💫 Number ${index + 1} slowly animated`);
             }
         }
 
@@ -3567,6 +3577,11 @@
                 ];
                 this.baseUrl = 'https://sogoods.net/photos/main/';
                 this.mainImageElement = document.getElementById('main-image');
+                this.fallbackImages = [
+                    'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=800&h=600&fit=crop',
+                    'https://images.unsplash.com/photo-1583336663277-620dc1996580?w=800&h=600&fit=crop',
+                    'https://images.unsplash.com/photo-1571566882372-1598d88abd90?w=800&h=600&fit=crop'
+                ];
                 this.init();
             }
 
@@ -3580,9 +3595,9 @@
                 }, 30000);
             }
 
-            displayRandomImage() {
-                if (this.mainImages.length === 0) {
-                    console.warn('⚠️ No main images available');
+            async displayRandomImage() {
+                if (!this.mainImageElement) {
+                    console.warn('⚠️ Main image element not found');
                     return;
                 }
 
@@ -3590,11 +3605,37 @@
                 const selectedImage = this.mainImages[randomIndex];
                 const imageUrl = this.baseUrl + selectedImage;
 
-                if (this.mainImageElement) {
-                    this.mainImageElement.src = imageUrl;
-                    this.mainImageElement.alt = `Main Image: ${selectedImage}`;
-                    console.log(`🎲 Random main image: ${selectedImage}`);
+                try {
+                    // 画像の読み込みをテスト
+                    const img = new Image();
+                    img.onload = () => {
+                        this.mainImageElement.src = imageUrl;
+                        this.mainImageElement.alt = `sogoods photo`;
+                        this.mainImageElement.style.display = 'block';
+                        console.log(`✅ Main image loaded: ${selectedImage}`);
+                    };
+                    
+                    img.onerror = () => {
+                        console.warn(`❌ Failed to load: ${selectedImage}, using fallback`);
+                        this.useFallbackImage();
+                    };
+                    
+                    img.src = imageUrl;
+                    
+                } catch (error) {
+                    console.error('❌ Image loading error:', error);
+                    this.useFallbackImage();
                 }
+            }
+
+            useFallbackImage() {
+                const fallbackIndex = Math.floor(Math.random() * this.fallbackImages.length);
+                const fallbackUrl = this.fallbackImages[fallbackIndex];
+                
+                this.mainImageElement.src = fallbackUrl;
+                this.mainImageElement.alt = 'sogoods fallback image';
+                this.mainImageElement.style.display = 'block';
+                console.log(`🔄 Using fallback image: ${fallbackUrl}`);
             }
         }
 
