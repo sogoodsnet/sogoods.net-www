@@ -244,6 +244,47 @@
             transition: all 0.3s ease;
             pointer-events: auto;
             user-select: none;
+            opacity: 0;
+            transform: scale(0.5) translateY(20px);
+        }
+
+        /* 数字のランダム浮上アニメーション */
+        .number.floating {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .number.disappearing {
+            opacity: 0;
+            transform: scale(0.5) translateY(-20px);
+            transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        @keyframes numberFloat {
+            0% { 
+                opacity: 0;
+                transform: scale(0.5) translateY(20px);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.1) translateY(-5px);
+            }
+            100% { 
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        @keyframes numberFade {
+            0% { 
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+            100% { 
+                opacity: 0;
+                transform: scale(0.5) translateY(-20px);
+            }
         }
 
         .number:hover {
@@ -404,33 +445,7 @@
             transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
-        /* ミニ写真ギャラリー */
-        .mini-gallery {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: grid;
-            grid-template-columns: repeat(4, 60px);
-            gap: 8px;
-            z-index: 5;
-        }
 
-        .mini-image {
-            width: 60px;
-            height: 45px;
-            object-fit: cover;
-            object-position: center center;
-            border: 2px solid rgba(255, 255, 255, 0.8);
-            border-radius: 4px;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            background: #f0f0f0;
-        }
-
-        .mini-image:hover {
-            transform: scale(1.1);
-            border-color: #2196F3;
             box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
         }
 
@@ -749,36 +764,7 @@
             min-width: 20px;
         }
 
-        /* ミニギャラリーポップアップ */
-        .mini-gallery-popup {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 9999;
-            background: rgba(0, 0, 0, 0.9);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
 
-        .mini-gallery-popup.show {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .mini-gallery-popup img {
-            max-width: 90vw;
-            max-height: 90vh;
-            object-fit: contain;
-            border-radius: 10px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-        }
 
         /* 📝 TII Database Styles */
         .tii-write-area {
@@ -1072,13 +1058,8 @@
                 <div class="number n24">47</div>
             </div>
             
-            <!-- ミニ写真ギャラリー -->
-            <div class="mini-gallery">
-                <img src="https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=100&h=75&fit=crop" alt="ミニ1" class="mini-image">
-                <img src="https://images.unsplash.com/photo-1583336663277-620dc1996580?w=100&h=75&fit=crop" alt="ミニ2" class="mini-image">
-                <img src="https://images.unsplash.com/photo-1571566882372-1598d88abd90?w=100&h=75&fit=crop" alt="ミニ3" class="mini-image">
-                <img src="https://images.unsplash.com/photo-1561948955-570b270e7c36?w=100&h=75&fit=crop" alt="ミニ4" class="mini-image">
-            </div>
+            <!-- メイン画像エリア -->
+            <img src="" alt="Main Image" class="main-image" id="main-image" />
         </div>
 
         <!-- 右カラム -->
@@ -3522,10 +3503,107 @@
         // グローバルインスタンス
         window.tankaSystem = new TankaSystem();
 
+        // 数字のランダムアニメーションシステム
+        class NumberAnimationSystem {
+            constructor() {
+                this.numbers = document.querySelectorAll('.number');
+                this.animationIntervals = [];
+                this.init();
+            }
+
+            init() {
+                console.log('🔢 Number Animation System initialized');
+                this.startRandomAnimations();
+            }
+
+            startRandomAnimations() {
+                this.numbers.forEach((number, index) => {
+                    // 各数字に異なるランダム間隔を設定
+                    const randomDelay = Math.random() * 5000; // 0-5秒のランダム初期遅延
+                    const animationInterval = 3000 + Math.random() * 7000; // 3-10秒のランダム間隔
+
+                    setTimeout(() => {
+                        this.animateNumber(number, index);
+                        
+                        // 継続的なランダムアニメーション
+                        const interval = setInterval(() => {
+                            this.animateNumber(number, index);
+                        }, animationInterval);
+                        
+                        this.animationIntervals.push(interval);
+                    }, randomDelay);
+                });
+            }
+
+            animateNumber(number, index) {
+                // 浮上アニメーション
+                number.style.animation = 'numberFloat 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards';
+                
+                // 表示時間（1.5-3秒のランダム）
+                const displayTime = 1500 + Math.random() * 1500;
+                
+                setTimeout(() => {
+                    // 消失アニメーション
+                    number.style.animation = 'numberFade 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards';
+                    
+                    setTimeout(() => {
+                        number.style.animation = '';
+                    }, 600);
+                }, displayTime);
+
+                console.log(`💫 Number ${index + 1} animated`);
+            }
+        }
+
+        // メイン画像管理システム（簡素化版）
+        class MainImageSystem {
+            constructor() {
+                this.mainImages = [
+                    '129-DSCN9004.JPG',
+                    '1758928793445-2D3DD0DA-ABA9-44F8-B090-558ADB3E9F42.jpeg',
+                    '1758932572782-032-DSC_1023.JPG.jpg',
+                    '21-DSC_2098.JPG',
+                    '30-DSC_8602.JPG'
+                ];
+                this.baseUrl = 'https://sogoods.net/photos/main/';
+                this.mainImageElement = document.getElementById('main-image');
+                this.init();
+            }
+
+            init() {
+                console.log('🖼️ Main Image System initialized');
+                this.displayRandomImage();
+                
+                // 30秒ごとに画像を変更
+                setInterval(() => {
+                    this.displayRandomImage();
+                }, 30000);
+            }
+
+            displayRandomImage() {
+                if (this.mainImages.length === 0) {
+                    console.warn('⚠️ No main images available');
+                    return;
+                }
+
+                const randomIndex = Math.floor(Math.random() * this.mainImages.length);
+                const selectedImage = this.mainImages[randomIndex];
+                const imageUrl = this.baseUrl + selectedImage;
+
+                if (this.mainImageElement) {
+                    this.mainImageElement.src = imageUrl;
+                    this.mainImageElement.alt = `Main Image: ${selectedImage}`;
+                    console.log(`🎲 Random main image: ${selectedImage}`);
+                }
+            }
+        }
+
         // DOM読み込み後に自動初期化
         document.addEventListener('DOMContentLoaded', () => {
             window.photoManager = new PhotoManager();
             window.imageDropHandler = new ImageDropHandler(window.photoManager);
+            window.numberAnimationSystem = new NumberAnimationSystem();
+            window.mainImageSystem = new MainImageSystem();
             
             // 開発時のヘルプ表示
             setTimeout(() => {
