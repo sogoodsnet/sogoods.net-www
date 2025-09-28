@@ -117,23 +117,21 @@
             transform: translateY(0);
         }
 
-        /* MAPS画像ボタンのスタイル */
+        /* MAPS画像ボタンのスタイル - クリーンで透過ロゴに最適 */
         .maps-img-btn {
             display: inline-block;
-            padding: 4px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
+            padding: 2px;
+            background: none;
+            border: none;
             transition: all 0.3s ease;
             text-decoration: none;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            opacity: 0.8;
         }
 
         .maps-img-btn:hover {
-            transform: translateY(-2px);
-            background: rgba(255, 255, 255, 0.2);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            border-color: rgba(0, 0, 0, 0.2);
+            transform: translateY(-2px) scale(1.05);
+            opacity: 1;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
         }
 
         .maps-img-btn:active {
@@ -981,8 +979,7 @@
             }
 
             .maps-img-btn {
-                padding: 3px;
-                border-radius: 6px;
+                padding: 1px;
             }
 
             .maps-img {
