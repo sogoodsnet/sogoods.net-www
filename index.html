@@ -966,10 +966,268 @@
         </div>
     </div>
 
-    <!-- 📷 Dynamic Photo & Stats System -->
-    <script src="notion-api.js"></script>
-    <script src="photo-manager.js"></script>
-    <script src="tanka-system.js"></script>
+    <!-- 📷 Integrated JavaScript (Combined for Cloudflare Pages) -->
+    <script>
+    // =============================================================================
+    // NOTION API INTEGRATION
+    // =============================================================================
+    
+    /**
+     * Notion API連携モジュール
+     * 記事・日記・短歌を取得して表示
+     */
+    
+    class NotionAPI {
+        constructor(config = {}) {
+            this.config = {
+                // Notion API設定（後で設定）
+                notionToken: config.notionToken || '',
+                databaseId: config.databaseId || '',
+                corsProxy: config.corsProxy || 'https://cors-anywhere.herokuapp.com/',
+                // フォールバック用のサンプルデータ
+                useFallback: config.useFallback !== false
+            };
+        }
+    
+        /**
+         * Notionデータベースから記事を取得
+         */
+        async fetchArticles(limit = 10) {
+            if (!this.config.notionToken || !this.config.databaseId) {
+                console.log('Notion APIが設定されていません。サンプルデータを使用します。');
+                return this.getFallbackData();
+            }
+    
+            try {
+                const response = await fetch(`${this.config.corsProxy}https://api.notion.com/v1/databases/${this.config.databaseId}/query`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${this.config.notionToken}`,
+                        'Content-Type': 'application/json',
+                        'Notion-Version': '2022-06-28'
+                    },
+                    body: JSON.stringify({
+                        page_size: limit,
+                        sorts: [{
+                            property: 'Created',
+                            direction: 'descending'
+                        }]
+                    })
+                });
+    
+                if (!response.ok) {
+                    throw new Error(`Notion API Error: ${response.status}`);
+                }
+    
+                const data = await response.json();
+                return this.processNotionData(data.results);
+            } catch (error) {
+                console.error('Notion API取得エラー:', error);
+                return this.getFallbackData();
+            }
+        }
+    
+        /**
+         * Notionデータを処理して表示用に変換
+         */
+        processNotionData(results) {
+            return results.map(page => {
+                const properties = page.properties;
+                
+                return {
+                    id: page.id,
+                    title: this.extractText(properties.Title || properties.Name),
+                    content: this.extractText(properties.Content || properties.Excerpt),
+                    date: this.extractDate(properties.Date || properties.Created),
+                    type: this.extractSelect(properties.Type) || 'article',
+                    tags: this.extractMultiSelect(properties.Tags),
+                    url: page.url
+                };
+            });
+        }
+    
+        /**
+         * フォールバック用のサンプルデータ
+         */
+        getFallbackData() {
+            const today = new Date();
+            return [
+                {
+                    id: '1',
+                    title: '新作写真展のお知らせ',
+                    content: '秋の風景をテーマにした写真展を開催します。自然の美しさと季節の移ろいを表現した作品をお楽しみください...',
+                    date: this.formatDate(today),
+                    type: 'news',
+                    tags: ['写真展', '秋']
+                },
+                {
+                    id: '2',
+                    title: '風のうた',
+                    content: '風涼し\\n山もみじ葉の\\n舞い踊り\\nレンズに映る\\n季節のしらべ',
+                    date: this.formatDate(new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000)),
+                    type: 'tanka',
+                    tags: ['短歌', '自然']
+                },
+                {
+                    id: '3',
+                    title: '撮影日記より',
+                    content: '今日は早朝から山へ。朝霧が幻想的で、光と影のコントラストが美しい一瞬を捉えることができました...',
+                    date: this.formatDate(new Date(today.getTime() - 10 * 24 * 60 * 60 * 1000)),
+                    type: 'diary',
+                    tags: ['撮影', '山']
+                }
+            ];
+        }
+    
+        /**
+         * Notionのテキストプロパティを抽出
+         */
+        extractText(property) {
+            if (!property) return '';
+            
+            if (property.title) {
+                return property.title.map(text => text.plain_text).join('');
+            }
+            if (property.rich_text) {
+                return property.rich_text.map(text => text.plain_text).join('');
+            }
+            return '';
+        }
+    
+        /**
+         * Notionの日付プロパティを抽出
+         */
+        extractDate(property) {
+            if (!property) return this.formatDate(new Date());
+            
+            if (property.date && property.date.start) {
+                return this.formatDate(new Date(property.date.start));
+            }
+            if (property.created_time) {
+                return this.formatDate(new Date(property.created_time));
+            }
+            return this.formatDate(new Date());
+        }
+    
+        /**
+         * Notionのセレクトプロパティを抽出
+         */
+        extractSelect(property) {
+            return property?.select?.name || '';
+        }
+    
+        /**
+         * Notionのマルチセレクトプロパティを抽出
+         */
+        extractMultiSelect(property) {
+            return property?.multi_select?.map(item => item.name) || [];
+        }
+    
+        /**
+         * 日付をフォーマット
+         */
+        formatDate(date) {
+            return date.toLocaleDateString('ja-JP', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).replace(/\//g, '.');
+        }
+    
+        /**
+         * 日記コンテンツを右カラムに表示
+         */
+        async renderDiary(containerId = 'diary-content') {
+            const container = document.getElementById(containerId);
+            if (!container) {
+                console.log('日記コンテナが見つかりません');
+                return;
+            }
+    
+            try {
+                console.log('📖 日記コンテンツを読み込み中...');
+                const articles = await this.fetchArticles(8);
+                
+                // 日記・記事・短歌のコンテンツを抽出
+                const diaryContent = articles.filter(item => 
+                    ['diary', 'article', 'tanka', 'event', 'news'].includes(item.type)
+                ).slice(0, 6);
+    
+                let html = '';
+                
+                diaryContent.forEach(item => {
+                    const formattedContent = this.formatDiaryContent(item.content, item.type);
+                    const typeIcon = this.getTypeIcon(item.type);
+                    
+                    html += `
+                        <div class="diary-entry">
+                            <div class="diary-meta">
+                                <span class="diary-type">${typeIcon}</span>
+                                <span class="diary-date">${item.date}</span>
+                            </div>
+                            <div class="diary-content-text">
+                                ${formattedContent}
+                            </div>
+                        </div>
+                    `;
+                });
+    
+                container.innerHTML = html;
+                console.log('📖 日記コンテンツの読み込み完了');
+    
+            } catch (error) {
+                console.error('日記読み込みエラー:', error);
+                container.innerHTML = `
+                    <div class="diary-entry">
+                        <p>今日は新しい撮影スポットを探索しました。光と影が織りなす美しい瞬間を捉えることができ、写真の持つ無限の可能性を感じています。</p>
+                    </div>
+                    <div class="diary-entry">
+                        <p>色彩豊かな夕焼けが空を染める時間帯。自然が見せる芸術的な瞬間に心を奪われました。カメラを通して世界を見ることの喜びを再確認しています。</p>
+                    </div>
+                    <div class="diary-entry">
+                        <p>街の小さなカフェで出会った光景。日常に隠れている特別な瞬間を見つけ、それを写真に残すことの大切さを感じました。</p>
+                    </div>
+                `;
+            }
+        }
+    
+        /**
+         * 日記用のコンテンツフォーマット
+         */
+        formatDiaryContent(content, type) {
+            if (type === 'tanka') {
+                // 短歌の場合は改行を保持し、スタイルを調整
+                return `<div class="tanka-content">${content.replace(/\\n/g, '<br>')}</div>`;
+            }
+            
+            // 日記の場合は適度な長さで切り詰め
+            const maxLength = 120;
+            if (content.length > maxLength) {
+                return content.substring(0, maxLength) + '...';
+            }
+            return content;
+        }
+    
+        /**
+         * タイプに応じたアイコンを取得
+         */
+        getTypeIcon(type) {
+            const icons = {
+                diary: '📔',
+                article: '📝',
+                tanka: '🌸',
+                event: '📅',
+                news: '📰'
+            };
+            return icons[type] || '📖';
+        }
+    }
+    
+    // グローバルインスタンス
+    window.notionAPI = new NotionAPI({
+        useFallback: true // 現在はサンプルデータを使用
+    });
+    </script>
     
     <script>
         // 🔗 Initialize systems on page load
@@ -1434,6 +1692,1540 @@
                     number.setAttribute('data-original-number', number.textContent);
                 });
             }, 100);
+        });
+
+        // 📸 PhotoManager Integration - sogoods.net Photo Manager
+        /**
+         * sogoods.net Photo Manager
+         * ランダム写真表示とリアルタイムデータ管理システム
+         */
+
+        class PhotoManager {
+            constructor() {
+                this.photosPath = '/photos';
+                this.miikoPhotos = [];
+                this.galleryPhotos = [];
+                this.uploadedPhotos = []; // アップロードされた写真を保存
+                this.currentPhoto = null;
+                this.updateInterval = null;
+                this.serverStorageEnabled = false; // サーバーサイドストレージフラグ
+                this.stats = {
+                    totalPhotos: 0,
+                    viewCount: 0,
+                    lastUpdate: new Date(),
+                    randomSeed: Math.floor(Math.random() * 1000)
+                };
+                
+                this.init();
+            }
+
+            async init() {
+                // サーバーサイドストレージ可用性チェック
+                await this.checkServerStorage();
+                
+                // アップロード写真を復元
+                this.loadUploadedPhotos();
+                
+                await this.loadPhotoList();
+                this.setupRandomDisplay();
+                this.setupRealtimeStats();
+                this.loadStats();
+                
+                // デバッグモードでFlickr接続テスト
+                if (window.location.hostname.includes('localhost') || window.location.hostname.includes('e2b.dev')) {
+                    setTimeout(() => this.testFlickrConnection(), 3000);
+                }
+            }
+
+            // サーバーサイドストレージの可用性をチェック
+            async checkServerStorage() {
+                try {
+                    console.log('🔍 Checking server-side storage availability...');
+                    
+                    const response = await fetch('/api/photos/miiko', {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success) {
+                            this.serverStorageEnabled = true;
+                            console.log(`✅ Server storage available - ${result.totalCount} photos in /photos/miiko/`);
+                            
+                            // サーバーから既存の写真リストを取得してmiikoPhotosに統合
+                            if (result.photos && result.photos.length > 0) {
+                                const serverPhotos = result.photos.map(photo => photo.url);
+                                console.log('📁 Server photos:', serverPhotos.length);
+                            }
+                        } else {
+                            console.log('⚠️ Server storage API unavailable');
+                        }
+                    } else {
+                        console.log('⚠️ Server storage not responding');
+                    }
+                } catch (error) {
+                    console.log('⚠️ Server storage check failed:', error.message);
+                }
+
+                console.log(`📦 Storage mode: ${this.serverStorageEnabled ? 'Server-side (/photos/miiko/)' : 'Browser-only (localStorage)'}`);
+            }
+
+            // 写真リストを動的に読み込み（Flickr API + サーバーストレージ）
+            async loadPhotoList() {
+                try {
+                    console.log('📸 Loading photos from multiple sources...');
+                    
+                    // サーバーストレージから写真を取得
+                    const serverPhotos = await this.loadServerPhotos();
+                    
+                    // Flickrから写真を取得
+                    const flickrPhotos = await this.fetchFlickrPhotos();
+                    
+                    // 写真を統合
+                    let allPhotos = [...serverPhotos];
+                    
+                    if (flickrPhotos && flickrPhotos.length > 0) {
+                        allPhotos = [...allPhotos, ...flickrPhotos];
+                        console.log(`📷 Combined: ${serverPhotos.length} server + ${flickrPhotos.length} Flickr photos`);
+                    } else if (serverPhotos.length === 0) {
+                        // サーバーもFlickrも空の場合のフォールバック
+                        console.log('⚠️ No server or Flickr photos, using sample photos');
+                        allPhotos = this.getSamplePhotos();
+                    }
+                    
+                    if (allPhotos.length > 0) {
+                        // メイン画像用とギャラリー用に分割
+                        this.miikoPhotos = allPhotos.slice(0, Math.ceil(allPhotos.length * 0.7));
+                        this.galleryPhotos = allPhotos.slice(Math.ceil(allPhotos.length * 0.7));
+                        
+                        this.stats.totalPhotos = allPhotos.length + this.uploadedPhotos.length;
+                        console.log(`📷 Final: ${this.miikoPhotos.length} main photos, ${this.galleryPhotos.length} gallery photos, ${this.uploadedPhotos.length} uploaded photos`);
+                        console.log(`📦 Storage: ${this.serverStorageEnabled ? 'Server + Browser' : 'Browser only'}`);
+                    } else {
+                        // 完全フォールバック
+                        this.miikoPhotos = this.getSamplePhotos();
+                        this.galleryPhotos = [];
+                        this.stats.totalPhotos = this.miikoPhotos.length + this.uploadedPhotos.length;
+                    }
+                    
+                } catch (error) {
+                    console.warn('📁 Flickr API failed, using sample photos:', error.message);
+                    this.miikoPhotos = this.getSamplePhotos();
+                    this.galleryPhotos = [];
+                    this.stats.totalPhotos = this.miikoPhotos.length + this.uploadedPhotos.length;
+                }
+            }
+
+            // サーバーから写真リストを取得
+            async loadServerPhotos() {
+                if (!this.serverStorageEnabled) return [];
+
+                try {
+                    const response = await fetch('/api/photos/miiko');
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success && result.photos) {
+                            console.log(`📁 Loaded ${result.photos.length} photos from server storage`);
+                            return result.photos.map(photo => photo.url);
+                        }
+                    }
+                } catch (error) {
+                    console.error('❌ Failed to load server photos:', error);
+                }
+                
+                return [];
+            }
+
+            // Flickr APIから写真を取得（CORS対応版）
+            async fetchFlickrPhotos() {
+                try {
+                    console.log('📸 Attempting to fetch photos from Flickr...');
+                    
+                    // 代替手段1: Flickrの直接画像URLを使用（手動キュレーション）
+                    const curatedFlickrPhotos = await this.getCuratedFlickrPhotos();
+                    if (curatedFlickrPhotos.length > 0) {
+                        console.log(`✅ Flickr: Using curated photos (${curatedFlickrPhotos.length} photos)`);
+                        return curatedFlickrPhotos;
+                    }
+                    
+                    throw new Error('All Flickr methods failed');
+                    
+                } catch (error) {
+                    console.warn('❌ Flickr API Error:', error.message);
+                    return null;
+                }
+            }
+
+            // sogoods Flickrアカウントからの厳選写真（サーバー経由）
+            async getCuratedFlickrPhotos() {
+                try {
+                    console.log('📸 Fetching sogoods Flickr photos via server API...');
+                    
+                    const response = await fetch('/api/flickr-photos');
+                    
+                    if (!response.ok) {
+                        throw new Error(`Server error: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (data.success && data.photos && data.photos.length > 0) {
+                        const photoUrls = data.photos.map(photo => photo.url);
+                        console.log(`✅ Server Flickr API: Retrieved ${photoUrls.length} photos from ${data.sourcePhotoIds} IDs`);
+                        console.log('📷 Flickr photos:', photoUrls.slice(0, 3).map(url => url.split('/').pop()));
+                        return photoUrls;
+                    } else {
+                        console.warn('❌ No valid photos from server Flickr API');
+                        return [];
+                    }
+                    
+                } catch (error) {
+                    console.warn('❌ Server Flickr API failed:', error.message);
+                    return [];
+                }
+            }
+
+            // Flickrの接続テスト用関数（デバッグ用）
+            async testFlickrConnection() {
+                console.log('🔍 Testing Flickr API connection...');
+                try {
+                    const photos = await this.fetchFlickrPhotos();
+                    if (photos && photos.length > 0) {
+                        console.log(`✅ Flickr Test: Successfully retrieved ${photos.length} photos`);
+                        console.log('📷 First photo URL:', photos[0]);
+                        return true;
+                    } else {
+                        console.log('❌ Flickr Test: No photos retrieved');
+                        return false;
+                    }
+                } catch (error) {
+                    console.log('❌ Flickr Test Error:', error);
+                    return false;
+                }
+            }
+
+            // フォールバック用空配列（Flickr写真のみを使用）
+            getSamplePhotos() {
+                console.log('⚠️ No Flickr photos available - returning empty array');
+                return [];
+            }
+
+            // ランダム写真表示の設定
+            setupRandomDisplay() {
+                // 初期表示
+                this.displayRandomPhoto();
+                
+                // 30秒ごとに写真を変更
+                setInterval(() => {
+                    this.displayRandomPhoto();
+                }, 30000);
+
+                // 小さいギャラリーも更新
+                this.updateMiniGallery();
+                
+                // 5分ごとにギャラリー更新
+                setInterval(() => {
+                    this.updateMiniGallery();
+                }, 300000);
+            }
+
+            // ランダムに写真を表示（自動リサイズ付き）
+            displayRandomPhoto() {
+                // アップロード写真 + Flickr写真を組み合わせ
+                const allMainPhotos = [...this.uploadedPhotos, ...this.miikoPhotos];
+                
+                if (allMainPhotos.length === 0) return;
+                
+                const randomIndex = Math.floor(Math.random() * allMainPhotos.length);
+                const selectedPhoto = allMainPhotos[randomIndex];
+                
+                const mainImage = document.querySelector('.main-image');
+                if (mainImage) {
+                    this.loadImageWithAutoResize(selectedPhoto, mainImage, {
+                        targetWidth: 800,
+                        targetHeight: 1200,
+                        quality: 0.8
+                    });
+                    this.currentPhoto = selectedPhoto;
+                    this.stats.viewCount++;
+                }
+                
+                const photoType = randomIndex < this.uploadedPhotos.length ? 'uploaded' : 'flickr';
+                console.log(`🎲 Random photo: ${randomIndex + 1}/${allMainPhotos.length} (${photoType})`);
+            }
+
+            // 小さなギャラリーを更新（自動リサイズ付き）
+            updateMiniGallery() {
+                const miniImages = document.querySelectorAll('.mini-image');
+                // アップロード写真 + Flickr写真を組み合わせ（ミニギャラリー用）
+                const allPhotos = [...this.uploadedPhotos, ...this.miikoPhotos, ...this.galleryPhotos];
+                
+                if (allPhotos.length === 0) return;
+                
+                miniImages.forEach((img, index) => {
+                    const randomIndex = Math.floor(Math.random() * allPhotos.length);
+                    const photoSrc = allPhotos[randomIndex];
+                    
+                    // ほぼグレースケール画像をデフォルトで設定
+                    this.loadImageWithAutoResize(photoSrc, img, {
+                        targetWidth: 120,
+                        targetHeight: 90,
+                        quality: 0.7,
+                        applyColorProcessing: 'grayscale'  // ほぼグレースケール
+                    });
+                    
+                    // ホバーエフェクト用のオリジナル色画像を準備
+                    this.setupMiniGalleryHoverEffect(img, photoSrc);
+                });
+                
+                console.log(`🖼️ Mini gallery updated: ${allPhotos.length} photos available (${this.uploadedPhotos.length} uploaded)`);
+            }
+
+            // アップロードされた写真をランダム表示に追加
+            addUploadedPhoto(dataUrl, fileName) {
+                // アップロード写真を配列に追加
+                this.uploadedPhotos.push(dataUrl);
+                
+                // 統計更新
+                this.stats.totalPhotos = this.uploadedPhotos.length + this.miikoPhotos.length + this.galleryPhotos.length;
+                this.stats.lastUpdate = new Date();
+                
+                // ローカルストレージに保存（セッション維持）
+                this.saveUploadedPhotos();
+                
+                console.log(`📤 Photo added to rotation: ${fileName}`);
+                console.log(`📊 Total photos in rotation: ${this.stats.totalPhotos} (${this.uploadedPhotos.length} uploaded)`);
+                
+                // ミニギャラリーを即座に更新
+                this.updateMiniGallery();
+            }
+
+            // アップロード写真をローカルストレージに保存
+            saveUploadedPhotos() {
+                try {
+                    // データURL は大きいので、最新の10枚のみ保存
+                    const recentPhotos = this.uploadedPhotos.slice(-10);
+                    localStorage.setItem('sogoods_uploaded_photos', JSON.stringify(recentPhotos));
+                } catch (error) {
+                    console.warn('⚠️ Failed to save uploaded photos to localStorage:', error);
+                }
+            }
+
+            // ローカルストレージからアップロード写真を復元
+            loadUploadedPhotos() {
+                try {
+                    const savedPhotos = localStorage.getItem('sogoods_uploaded_photos');
+                    if (savedPhotos) {
+                        this.uploadedPhotos = JSON.parse(savedPhotos);
+                        console.log(`📁 Restored ${this.uploadedPhotos.length} uploaded photos from storage`);
+                    }
+                } catch (error) {
+                    console.warn('⚠️ Failed to load uploaded photos from localStorage:', error);
+                    this.uploadedPhotos = [];
+                }
+            }
+
+            // リアルタイム統計の設定
+            setupRealtimeStats() {
+                this.updateStats();
+                
+                // 5秒ごとに統計を更新
+                this.updateInterval = setInterval(() => {
+                    this.updateStats();
+                }, 5000);
+            }
+
+            // 意味のある数字を生成・更新
+            updateStats() {
+                const now = new Date();
+                this.stats.lastUpdate = now;
+                
+                // 現在時刻ベースの動的数字
+                const currentStats = {
+                    hour: now.getHours(),
+                    minute: now.getMinutes(),
+                    day: now.getDate(),
+                    month: now.getMonth() + 1,
+                    totalPhotos: this.stats.totalPhotos,
+                    viewCount: this.stats.viewCount,
+                    uptime: Math.floor((now - this.stats.startTime) / 1000 / 60), // 分単位
+                    randomValue: Math.floor(Math.random() * 100) + 1,
+                    heartbeat: Math.floor(Math.random() * 40) + 60, // 60-100 BPM
+                    temperature: Math.floor(Math.random() * 10) + 18, // 18-28°C
+                    humidity: Math.floor(Math.random() * 30) + 40, // 40-70%
+                    visitors: Math.floor(Math.random() * 50) + this.stats.viewCount
+                };
+                
+                this.updateNumberOverlays(currentStats);
+                
+                // localStorage に保存
+                this.saveStats();
+            }
+
+            // 数字オーバーレイを更新
+            updateNumberOverlays(stats) {
+                const numbers = document.querySelectorAll('.number');
+                if (numbers.length === 0) return;
+                
+                // 意味のある数字のマッピング
+                const meaningfulNumbers = [
+                    stats.hour,                    // 現在時刻
+                    stats.minute,                  // 現在分
+                    stats.day,                     // 今日の日付
+                    stats.month,                   // 現在月
+                    stats.totalPhotos,             // 総写真数
+                    stats.viewCount,               // 閲覧数
+                    stats.uptime,                  // 稼働時間（分）
+                    stats.randomValue,             // ランダム値
+                    stats.heartbeat,               // 心拍数風
+                    stats.temperature,             // 温度風
+                    stats.humidity,                // 湿度風
+                    stats.visitors,                // 訪問者数風
+                    Math.floor(Math.random() * 365) + 1,  // 年内日数
+                    Math.floor(Math.random() * 24) + 1,   // 時間
+                    Math.floor(Math.random() * 60) + 1,   // 分・秒
+                    Math.floor(Math.random() * 12) + 1,   // 月
+                    Math.floor(Math.random() * 999) + 1,  // ランダム3桁
+                    Math.floor(Math.random() * 99) + 1,   // ランダム2桁
+                    Math.floor(Math.random() * 9) + 1,    // ランダム1桁
+                    Math.floor(Math.random() * 50) + 1,   // 小さなランダム値
+                    Math.floor(Math.random() * 200) + 100, // 大きめのランダム値
+                    Math.floor(Math.random() * 10) + 1,   // シンプルな数字
+                    Math.floor(Math.random() * 77) + 1,   // 特別な範囲
+                    stats.viewCount % 100              // 閲覧数の下2桁
+                ];
+                
+                numbers.forEach((numberEl, index) => {
+                    if (index < meaningfulNumbers.length) {
+                        numberEl.textContent = meaningfulNumbers[index];
+                    }
+                });
+                
+                console.log(`🔢 Stats updated: ${stats.hour}:${stats.minute}, Photos: ${stats.totalPhotos}, Views: ${stats.viewCount}`);
+            }
+
+            // 統計をlocalStorageから読み込み
+            loadStats() {
+                const saved = localStorage.getItem('sogoods_stats');
+                if (saved) {
+                    const savedStats = JSON.parse(saved);
+                    this.stats = { ...this.stats, ...savedStats };
+                }
+                
+                // 開始時刻を設定（初回のみ）
+                if (!this.stats.startTime) {
+                    this.stats.startTime = new Date();
+                } else {
+                    this.stats.startTime = new Date(this.stats.startTime);
+                }
+            }
+
+            // 統計をlocalStorageに保存
+            saveStats() {
+                localStorage.setItem('sogoods_stats', JSON.stringify(this.stats));
+            }
+
+            // 自動リサイズ付き画像読み込み
+            loadImageWithAutoResize(src, imgElement, options = {}) {
+                const {
+                    targetWidth = 800,
+                    targetHeight = 600,
+                    quality = 0.8,
+                    fitMode = 'cover', // cover, contain, fill
+                    applyColorProcessing = false // 色処理オプション ('grayscale', true, false)
+                } = options;
+
+                // 一時的にローディング表示
+                imgElement.style.opacity = '0.5';
+                
+                const img = new Image();
+                img.crossOrigin = 'anonymous'; // CORS対応
+                
+                img.onload = () => {
+                    try {
+                        // Canvas で自動リサイズ・クロップ
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        // アスペクト比計算
+                        const sourceRatio = img.width / img.height;
+                        const targetRatio = targetWidth / targetHeight;
+                        
+                        let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+                        
+                        if (fitMode === 'cover') {
+                            // cover: はみ出した部分をクロップ
+                            if (sourceRatio > targetRatio) {
+                                drawHeight = targetHeight;
+                                drawWidth = drawHeight * sourceRatio;
+                                offsetX = (targetWidth - drawWidth) / 2;
+                            } else {
+                                drawWidth = targetWidth;
+                                drawHeight = drawWidth / sourceRatio;
+                                offsetY = (targetHeight - drawHeight) / 2;
+                            }
+                            canvas.width = targetWidth;
+                            canvas.height = targetHeight;
+                        } else if (fitMode === 'contain') {
+                            // contain: 全体を表示、余白あり
+                            if (sourceRatio > targetRatio) {
+                                drawWidth = targetWidth;
+                                drawHeight = drawWidth / sourceRatio;
+                                offsetY = (targetHeight - drawHeight) / 2;
+                            } else {
+                                drawHeight = targetHeight;
+                                drawWidth = drawHeight * sourceRatio;
+                                offsetX = (targetWidth - drawWidth) / 2;
+                            }
+                            canvas.width = targetWidth;
+                            canvas.height = targetHeight;
+                            ctx.fillStyle = '#f0f0f0';
+                            ctx.fillRect(0, 0, targetWidth, targetHeight);
+                        }
+                        
+                        // 高品質リサイズ設定
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+                        
+                        // 画像描画
+                        ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+                        
+                        // 色処理を条件付きで適用
+                        if (applyColorProcessing === 'grayscale') {
+                            this.applyGrayscaleProcessing(ctx, targetWidth, targetHeight);
+                        } else if (applyColorProcessing === true) {
+                            this.applyColorProcessing(ctx, targetWidth, targetHeight);
+                        }
+                        
+                        // 最適化されたDataURLを生成
+                        const optimizedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                        
+                        // 元の画像要素に適用
+                        imgElement.src = optimizedDataUrl;
+                        imgElement.style.opacity = '1';
+                        
+                        console.log(`🖼️ Auto-resized: ${img.width}x${img.height} → ${targetWidth}x${targetHeight}`);
+                        
+                    } catch (error) {
+                        // Canvas処理に失敗した場合は元画像を直接表示
+                        console.log('⚠️ Auto-resize failed, using original image:', error);
+                        imgElement.src = src;
+                        imgElement.style.opacity = '1';
+                    }
+                };
+                
+                img.onerror = () => {
+                    // 画像読み込み失敗時
+                    console.log('❌ Image load failed:', src);
+                    imgElement.style.opacity = '1';
+                };
+                
+                img.src = src;
+            }
+
+            // ほぼグレースケール処理を適用（ミニギャラリー用）
+            applyGrayscaleProcessing(ctx, width, height) {
+                try {
+                    // 画像データを取得
+                    const imageData = ctx.getImageData(0, 0, width, height);
+                    const data = imageData.data;
+                    
+                    // ピクセルごとに処理
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+                        
+                        // 輝度ベースのグレースケール計算
+                        const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+                        
+                        // ほぼグレースケール（わずかに元の色を残す）
+                        const colorRetention = 0.15; // 15%の色を残す
+                        const grayRetention = 0.85;   // 85%をグレースケール
+                        
+                        data[i]     = Math.round(luminance * grayRetention + r * colorRetention);
+                        data[i + 1] = Math.round(luminance * grayRetention + g * colorRetention);
+                        data[i + 2] = Math.round(luminance * grayRetention + b * colorRetention);
+                        
+                        // アルファ値はそのまま
+                        // data[i + 3] はそのまま
+                    }
+                    
+                    // 処理済み画像データを適用
+                    ctx.putImageData(imageData, 0, 0);
+                    
+                } catch (error) {
+                    console.log('⚠️ Grayscale processing skipped:', error.message);
+                }
+            }
+
+            // ミニギャラリーのホバーエフェクトを設定（グレースケール⇄オリジナル色）
+            setupMiniGalleryHoverEffect(imgElement, photoSrc) {
+                let grayscaleImageSrc = null;
+                let originalColorSrc = null;
+                let isHovering = false;
+
+                // ホバー開始時（グレースケール → オリジナル色）
+                imgElement.addEventListener('mouseenter', async () => {
+                    if (isHovering) return;
+                    isHovering = true;
+
+                    // グレースケール画像を保存（現在表示中）
+                    if (!grayscaleImageSrc) {
+                        grayscaleImageSrc = imgElement.src;
+                    }
+
+                    // オリジナル色画像をバックグラウンドで生成
+                    if (!originalColorSrc) {
+                        try {
+                            originalColorSrc = await this.generateProcessedImage(photoSrc, {
+                                targetWidth: 120,
+                                targetHeight: 90,
+                                quality: 0.7,
+                                applyColorProcessing: false  // ホバー時はオリジナル色
+                            });
+                        } catch (error) {
+                            console.log('ホバー用オリジナル色画像の生成に失敗:', error);
+                            return;
+                        }
+                    }
+
+                    // ホバー中であればオリジナル色画像に切り替え
+                    if (isHovering && originalColorSrc) {
+                        imgElement.src = originalColorSrc;
+                    }
+                });
+
+                // ホバー終了時（オリジナル色 → グレースケール）
+                imgElement.addEventListener('mouseleave', () => {
+                    isHovering = false;
+                    if (grayscaleImageSrc) {
+                        imgElement.src = grayscaleImageSrc;
+                    }
+                });
+            }
+
+            // プロセス済み画像を生成（ホバーエフェクト用）
+            generateProcessedImage(src, options) {
+                return new Promise((resolve, reject) => {
+                    const {
+                        targetWidth = 120,
+                        targetHeight = 90,
+                        quality = 0.7,
+                        applyColorProcessing = true
+                    } = options;
+
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    
+                    img.onload = () => {
+                        try {
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            
+                            canvas.width = targetWidth;
+                            canvas.height = targetHeight;
+                            
+                            // アスペクト比計算とcover処理
+                            const sourceRatio = img.width / img.height;
+                            const targetRatio = targetWidth / targetHeight;
+                            
+                            let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+                            
+                            if (sourceRatio > targetRatio) {
+                                drawHeight = targetHeight;
+                                drawWidth = drawHeight * sourceRatio;
+                                offsetX = (targetWidth - drawWidth) / 2;
+                            } else {
+                                drawWidth = targetWidth;
+                                drawHeight = drawWidth / sourceRatio;
+                                offsetY = (targetHeight - drawHeight) / 2;
+                            }
+                            
+                            ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+                            
+                            // 色処理を適用
+                            if (applyColorProcessing === 'grayscale') {
+                                this.applyGrayscaleProcessing(ctx, targetWidth, targetHeight);
+                            } else if (applyColorProcessing === true) {
+                                this.applyColorProcessing(ctx, targetWidth, targetHeight);
+                            }
+                            
+                            // DataURLを生成
+                            const processedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                            resolve(processedDataUrl);
+                            
+                        } catch (error) {
+                            reject(error);
+                        }
+                    };
+                    
+                    img.onerror = () => reject(new Error('Image load failed'));
+                    img.src = src;
+                });
+            }
+
+            // 基本的な色処理を適用（メイン画像用）
+            applyColorProcessing(ctx, width, height) {
+                try {
+                    // この関数は主にメイン画像用。ミニギャラリーにはapplyGrayscaleProcessingを使用
+                    console.log('🎨 Color processing applied (basic implementation)');
+                } catch (error) {
+                    console.log('⚠️ Color processing skipped:', error.message);
+                }
+            }
+
+            // 手動でフォルダをチェック（開発時用）
+            async checkPhotoFolders() {
+                console.log('📁 Photo folder structure:');
+                console.log('   /photos/miiko/ <- みーこの写真をここに配置');
+                console.log('   /photos/gallery/ <- ギャラリー写真をここに配置');
+                console.log('');
+                console.log('📄 Supported formats: .jpg, .jpeg, .png, .gif, .webp');
+                console.log('🔧 Auto-resize: ANY size → optimized display size');
+                console.log('📐 Main photos: Auto-resized to 800x1200 (portrait)');
+                console.log('🖼️ Gallery photos: Auto-resized to 300x200 (landscape)');
+                console.log('💡 Tip: Upload any size - system handles optimization automatically!');
+            }
+        }
+
+        // 📤 ImageDropHandler Integration - 管理者認証付きドラッグ&ドロップ機能
+        class ImageDropHandler {
+            constructor(photoManager) {
+                this.photoManager = photoManager;
+                this.isAdminMode = false;
+                this.adminPassword = 'sogoods2024'; // 本番では変更してください
+                this.keySequence = [];
+                this.secretKeys = ['s', 'o', 'g', 'o', 'o', 'd', 's']; // sogoods
+                this.setupKeyListener();
+                this.setupAuthSystem();
+                this.checkDropPermission();
+            }
+
+            // キーシーケンス監視（簡素化）
+            setupKeyListener() {
+                document.addEventListener('keydown', (e) => {
+                    // 秘密のキーシーケンス 'sogoods' 監視（緊急用）
+                    this.keySequence.push(e.key.toLowerCase());
+                    if (this.keySequence.length > this.secretKeys.length) {
+                        this.keySequence.shift();
+                    }
+
+                    if (this.keySequence.join('') === this.secretKeys.join('')) {
+                        console.log('🔑 Emergency key sequence detected!');
+                        this.showAdminPrompt();
+                        this.keySequence = [];
+                    }
+                });
+            }
+
+            // 管理者認証システム
+            setupAuthSystem() {
+                // 管理者モード表示インジケータを追加
+                this.createAdminIndicator();
+                
+                // 隠しログインボタンを追加
+                this.createHiddenLoginButton();
+                
+                // localStorage から認証状態を復元
+                const savedAuth = localStorage.getItem('sogoods_admin_session');
+                if (savedAuth) {
+                    const session = JSON.parse(savedAuth);
+                    const now = new Date().getTime();
+                    
+                    // セッションが24時間以内なら自動ログイン
+                    if (now - session.timestamp < 24 * 60 * 60 * 1000) {
+                        this.isAdminMode = true;
+                        this.updateAdminIndicator();
+                        console.log('🔐 Admin session restored');
+                    }
+                }
+            }
+
+            // 管理者プロンプト表示
+            showAdminPrompt() {
+                if (this.isAdminMode) {
+                    // すでに管理者モードの場合はログアウト
+                    this.logout();
+                    return;
+                }
+
+                const password = prompt('🔐 管理者パスワードを入力してください:\n\n💡 ヒント: Ctrl+Shift+A または "sogoods" キーシーケンスでも開けます');
+                
+                if (password === this.adminPassword) {
+                    this.login();
+                } else if (password !== null) {
+                    alert('❌ パスワードが違います');
+                    console.log('🚫 Admin authentication failed');
+                }
+            }
+
+            // ログイン処理
+            login() {
+                this.isAdminMode = true;
+                
+                // セッション保存（24時間）
+                const session = {
+                    timestamp: new Date().getTime(),
+                    user: 'admin'
+                };
+                localStorage.setItem('sogoods_admin_session', JSON.stringify(session));
+                
+                this.setupDropZones();
+                this.updateAdminIndicator();
+                
+                console.log('✅ Admin mode activated');
+                console.log('📤 Drag & Drop enabled for photo upload');
+                alert('✅ 管理者モードが有効になりました！\n📤 写真のドラッグ&ドロップが可能です');
+            }
+
+            // ログアウト処理
+            logout() {
+                this.isAdminMode = false;
+                localStorage.removeItem('sogoods_admin_session');
+                
+                this.removeDropZones();
+                this.updateAdminIndicator();
+                
+                console.log('🔒 Admin mode deactivated');
+                alert('🔒 管理者モードを終了しました');
+            }
+
+            // 隠し管理者ボタンの作成
+            createAdminIndicator() {
+                // メインの管理者ステータス表示
+                const indicator = document.createElement('div');
+                indicator.id = 'admin-indicator';
+                indicator.style.cssText = `
+                    position: fixed;
+                    top: 10px;
+                    right: 10px;
+                    background: rgba(0,0,0,0.8);
+                    color: white;
+                    padding: 8px 12px;
+                    border-radius: 20px;
+                    font-size: 12px;
+                    font-family: Arial, sans-serif;
+                    z-index: 1000;
+                    display: none;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                `;
+                
+                indicator.onclick = () => this.showAdminPrompt();
+                document.body.appendChild(indicator);
+                this.adminIndicator = indicator;
+            }
+
+            // 隠しログインボタンの作成
+            createHiddenLoginButton() {
+                const hiddenButton = document.createElement('div');
+                hiddenButton.id = 'hidden-admin-btn';
+                hiddenButton.style.cssText = `
+                    position: fixed;
+                    bottom: 10px;
+                    left: 10px;
+                    width: 20px;
+                    height: 20px;
+                    background: rgba(200, 200, 200, 0.1);
+                    border-radius: 50%;
+                    cursor: pointer;
+                    z-index: 1000;
+                    transition: all 0.2s ease;
+                    opacity: 0.1;
+                    border: 1px solid rgba(200, 200, 200, 0.2);
+                `;
+                
+                // ホバー時に少し目立つように
+                hiddenButton.addEventListener('mouseenter', () => {
+                    hiddenButton.style.opacity = '0.4';
+                    hiddenButton.style.background = 'rgba(33, 150, 243, 0.3)';
+                    hiddenButton.style.transform = 'scale(1.2)';
+                });
+                
+                hiddenButton.addEventListener('mouseleave', () => {
+                    hiddenButton.style.opacity = '0.1';
+                    hiddenButton.style.background = 'rgba(200, 200, 200, 0.1)';
+                    hiddenButton.style.transform = 'scale(1)';
+                });
+                
+                // クリックで管理者ログイン
+                hiddenButton.addEventListener('click', () => {
+                    this.showAdminPrompt();
+                });
+                
+                // ダブルクリックで更にわかりやすく
+                hiddenButton.addEventListener('dblclick', (e) => {
+                    e.preventDefault();
+                    hiddenButton.style.background = 'rgba(33, 150, 243, 0.8)';
+                    setTimeout(() => {
+                        hiddenButton.style.background = 'rgba(200, 200, 200, 0.1)';
+                    }, 200);
+                });
+                
+                // ツールチップ（ホバー時のヒント）
+                hiddenButton.title = 'Admin';
+                
+                document.body.appendChild(hiddenButton);
+                this.hiddenButton = hiddenButton;
+            }
+
+            // インジケータ更新
+            updateAdminIndicator() {
+                if (!this.adminIndicator) return;
+                
+                // ストレージタイプの表示
+                const storageType = this.photoManager.serverStorageEnabled ? '📁 Server Storage' : '💾 Browser Storage';
+                
+                if (this.isAdminMode) {
+                    this.adminIndicator.innerHTML = `🔓 管理者モード (${storageType}) | クリックでログアウト`;
+                    this.adminIndicator.style.display = 'block';
+                    this.adminIndicator.style.background = 'rgba(33, 150, 243, 0.9)';
+                    
+                    // 隠しボタンも管理者モード表示に
+                    if (this.hiddenButton) {
+                        this.hiddenButton.style.background = 'rgba(33, 150, 243, 0.4)';
+                        this.hiddenButton.style.opacity = '0.6';
+                        this.hiddenButton.title = `Admin (${storageType}) - Click to logout`;
+                    }
+                } else {
+                    this.adminIndicator.innerHTML = `🔐 左下の隠しボタンで管理者ログイン (${storageType})`;
+                    this.adminIndicator.style.display = 'block';
+                    this.adminIndicator.style.background = 'rgba(0,0,0,0.6)';
+                    
+                    // 隠しボタンを通常状態に
+                    if (this.hiddenButton) {
+                        this.hiddenButton.style.background = 'rgba(200, 200, 200, 0.1)';
+                        this.hiddenButton.style.opacity = '0.1';
+                        this.hiddenButton.title = `Admin Login (${storageType})`;
+                    }
+                    
+                    // 5秒後に非表示
+                    setTimeout(() => {
+                        if (!this.isAdminMode) {
+                            this.adminIndicator.style.display = 'none';
+                        }
+                    }, 3000);
+                }
+            }
+
+            // ドロップ権限チェック
+            checkDropPermission() {
+                if (!this.isAdminMode) {
+                    console.log('🔒 Drop功能已禁用 - 需要管理员权限');
+                    return;
+                }
+                this.setupDropZones();
+            }
+
+            setupDropZones() {
+                if (!this.isAdminMode) return;
+                
+                // メイン画像エリアをドロップゾーンに
+                const centerColumn = document.querySelector('.center-column');
+                if (centerColumn) {
+                    // イベントリスナーが重複しないよう一度削除
+                    this.removeDropZones();
+                    
+                    // ハンドラーをバインドして保存
+                    this.boundHandlers = {
+                        dragOver: this.handleDragOver.bind(this),
+                        drop: this.handleDrop.bind(this),
+                        dragEnter: this.handleDragEnter.bind(this),
+                        dragLeave: this.handleDragLeave.bind(this)
+                    };
+                    
+                    // イベントリスナーを追加
+                    centerColumn.addEventListener('dragover', this.boundHandlers.dragOver);
+                    centerColumn.addEventListener('drop', this.boundHandlers.drop);
+                    centerColumn.addEventListener('dragenter', this.boundHandlers.dragEnter);
+                    centerColumn.addEventListener('dragleave', this.boundHandlers.dragLeave);
+                    
+                    // 視覚的な管理者モード表示
+                    centerColumn.style.position = 'relative';
+                    
+                    // 管理者オーバーレイの追加
+                    if (!centerColumn.querySelector('.admin-overlay')) {
+                        const overlay = document.createElement('div');
+                        overlay.className = 'admin-overlay';
+                        overlay.style.cssText = `
+                            position: absolute;
+                            top: 10px;
+                            left: 10px;
+                            background: rgba(33, 150, 243, 0.9);
+                            color: white;
+                            padding: 6px 10px;
+                            border-radius: 12px;
+                            font-size: 11px;
+                            font-family: Arial, sans-serif;
+                            z-index: 6;
+                            pointer-events: none;
+                        `;
+                        overlay.textContent = '📤 Admin: Drop enabled';
+                        centerColumn.appendChild(overlay);
+                    }
+                    
+                    console.log('✅ Drop zones setup completed');
+                }
+            }
+
+            removeDropZones() {
+                const centerColumn = document.querySelector('.center-column');
+                if (centerColumn) {
+                    // 既存のイベントリスナーを削除（より安全な方法）
+                    if (this.boundHandlers) {
+                        centerColumn.removeEventListener('dragover', this.boundHandlers.dragOver);
+                        centerColumn.removeEventListener('drop', this.boundHandlers.drop);
+                        centerColumn.removeEventListener('dragenter', this.boundHandlers.dragEnter);
+                        centerColumn.removeEventListener('dragleave', this.boundHandlers.dragLeave);
+                    }
+                    
+                    // 管理者オーバーレイを削除
+                    const overlay = centerColumn.querySelector('.admin-overlay');
+                    if (overlay) overlay.remove();
+                    
+                    // スタイルリセット
+                    centerColumn.style.backgroundColor = '';
+                }
+            }
+
+            handleDragOver(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+            }
+
+            handleDragEnter(e) {
+                if (!this.isAdminMode) {
+                    console.log('🔒 Drop disabled - Admin login required');
+                    return;
+                }
+                
+                e.preventDefault();
+                e.target.style.backgroundColor = 'rgba(33, 150, 243, 0.1)';
+                console.log('🎯 Admin drop zone activated - ready for image upload');
+            }
+
+            handleDragLeave(e) {
+                e.target.style.backgroundColor = '';
+            }
+
+            async handleDrop(e) {
+                console.log('🎯 Drop event triggered!', {
+                    isAdminMode: this.isAdminMode,
+                    filesCount: e.dataTransfer?.files?.length || 0
+                });
+                
+                if (!this.isAdminMode) {
+                    console.log('🔒 Drop blocked - Admin authentication required');
+                    alert('🔒 管理者認証が必要です\n\nCtrl+Shift+A または "sogoods" と入力してログインしてください');
+                    return;
+                }
+
+                e.preventDefault();
+                e.target.style.backgroundColor = '';
+                
+                const files = Array.from(e.dataTransfer.files);
+                const imageFiles = files.filter(file => file.type.startsWith('image/'));
+                
+                console.log('📁 Files analysis:', {
+                    totalFiles: files.length,
+                    imageFiles: imageFiles.length,
+                    fileTypes: files.map(f => f.type)
+                });
+                
+                if (imageFiles.length === 0) {
+                    console.log('❌ No image files found in drop');
+                    alert('❌ 画像ファイルが見つかりません\n対応形式: JPG, PNG, GIF, WebP');
+                    return;
+                }
+
+                console.log(`📤 Admin processing ${imageFiles.length} dropped image(s)`);
+                alert(`📤 ${imageFiles.length}枚の画像を処理中...`);
+
+                for (const file of imageFiles) {
+                    await this.processDroppedImage(file);
+                }
+                
+                alert('✅ 画像アップロード完了！新しい写真がランダム表示に追加されました。');
+                
+                // アップロード後、少し待ってからランダム表示を更新
+                setTimeout(() => {
+                    this.photoManager.displayRandomPhoto();
+                }, 1000);
+            }
+
+            async processDroppedImage(file) {
+                console.log(`🔄 Processing image: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+                
+                // 従来のブラウザベース処理
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    
+                    reader.onload = (e) => {
+                        console.log('📖 File read successfully, creating image...');
+                        const img = new Image();
+                        img.onload = () => {
+                            console.log(`🖼️ Image loaded: ${img.width}x${img.height}`);
+                            
+                            // アップロードされた写真をランダム表示に追加
+                            this.photoManager.addUploadedPhoto(e.target.result, file.name);
+                            
+                            // 自動リサイズして表示
+                            const mainImage = document.querySelector('.main-image');
+                            if (mainImage) {
+                                this.photoManager.loadImageWithAutoResize(e.target.result, mainImage, {
+                                    targetWidth: 800,
+                                    targetHeight: 1200,
+                                    quality: 0.8
+                                });
+                                
+                                console.log(`✅ Processed: ${file.name} (${img.width}x${img.height})`);
+                            } else {
+                                console.error('❌ Main image element not found');
+                            }
+                            resolve();
+                        };
+                        
+                        img.onerror = () => {
+                            console.error(`❌ Failed to load image: ${file.name}`);
+                            resolve();
+                        };
+                        
+                        img.src = e.target.result;
+                    };
+                    
+                    reader.onerror = () => {
+                        console.error(`❌ Failed to read file: ${file.name}`);
+                        resolve();
+                    };
+                    
+                    reader.readAsDataURL(file);
+                });
+            }
+        }
+
+        // グローバルに公開
+        window.PhotoManager = PhotoManager;
+        window.ImageDropHandler = ImageDropHandler;
+
+        // 📝 TankaSystem Integration - sogoods.net Advanced Tanka System
+        /**
+         * sogoods.net Advanced Tanka System
+         * CSV Database Integration + Vertical Display + Voting System
+         */
+
+        class TankaSystem {
+            constructor() {
+                this.tankaDatabase = [];
+                this.votingResults = new Map(); // tankaId -> {likes: 0, dislikes: 0}
+                this.currentTankaIndex = 0;
+                this.isInitialized = false;
+                
+                this.init();
+            }
+
+            async init() {
+                console.log('📝 Initializing Advanced Tanka System...');
+                
+                try {
+                    await this.loadTankaDatabase();
+                    await this.loadVotingResults();
+                    this.isInitialized = true;
+                    console.log(`✅ Tanka system ready with ${this.tankaDatabase.length} poems`);
+                } catch (error) {
+                    console.error('❌ Tanka system initialization failed:', error);
+                    this.fallbackToStaticTanka();
+                }
+            }
+
+            // CSV データベースを読み込み
+            async loadTankaDatabase() {
+                try {
+                    const response = await fetch('/tankadb.csv');
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    
+                    const csvText = await response.text();
+                    this.tankaDatabase = this.parseCSV(csvText);
+                    
+                    console.log(`📚 Loaded ${this.tankaDatabase.length} tanka from CSV database`);
+                    console.log('📊 Sample tanka:', this.tankaDatabase.slice(0, 3));
+                    
+                } catch (error) {
+                    console.error('❌ Failed to load tanka CSV:', error);
+                    throw error;
+                }
+            }
+
+            // CSVパーサー
+            parseCSV(csvText) {
+                const lines = csvText.split('\n').filter(line => line.trim());
+                const header = lines[0].split(',');
+                const tanka = [];
+                
+                for (let i = 1; i < lines.length; i++) {
+                    const columns = this.parseCSVLine(lines[i]);
+                    if (columns.length >= 3) {
+                        tanka.push({
+                            id: i,
+                            text: columns[0].trim(),
+                            date: columns[1].trim(),
+                            rating: parseInt(columns[2]) || 0,
+                            votes: { likes: 0, dislikes: 0 }
+                        });
+                    }
+                }
+                
+                return tanka;
+            }
+
+            // CSV行パーサー（カンマが短歌内に含まれる場合に対応）
+            parseCSVLine(line) {
+                const result = [];
+                let current = '';
+                let inQuotes = false;
+                
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        result.push(current);
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                
+                result.push(current);
+                return result;
+            }
+
+            // 投票結果を読み込み（サーバーから）
+            async loadVotingResults() {
+                try {
+                    const response = await fetch('/api/tanka-vote');
+                    if (response.ok) {
+                        const results = await response.json();
+                        if (results.success) {
+                            results.votes.forEach(vote => {
+                                this.votingResults.set(vote.tankaId, {
+                                    likes: vote.likes || 0,
+                                    dislikes: vote.dislikes || 0
+                                });
+                            });
+                            console.log(`📊 Loaded voting results for ${this.votingResults.size} tanka`);
+                        }
+                    }
+                } catch (error) {
+                    console.log('⚠️ No voting results found (will start fresh)');
+                }
+            }
+
+            // フォールバック用の静的短歌
+            fallbackToStaticTanka() {
+                console.log('🔄 Using fallback static tanka collection');
+                this.tankaDatabase = [
+                    { id: 1, text: "冬の朝窓辺に座る猫の瞳静寂を映し時が止まる", date: "2024-01-01", rating: 4 },
+                    { id: 2, text: "桜散り風に舞い踊る花びらよ心に残る春の記憶", date: "2024-01-02", rating: 5 },
+                    { id: 3, text: "夕暮れに街灯が点く道すがら影が長くて家路急ぐ", date: "2024-01-03", rating: 3 }
+                ];
+                this.isInitialized = true;
+            }
+
+            // ランダムな短歌を取得
+            getRandomTanka() {
+                if (!this.isInitialized || this.tankaDatabase.length === 0) {
+                    return null;
+                }
+                
+                const randomIndex = Math.floor(Math.random() * this.tankaDatabase.length);
+                this.currentTankaIndex = randomIndex;
+                return this.tankaDatabase[randomIndex];
+            }
+
+            // 縦書き短歌ポップアップを表示
+            displayVerticalTanka(tankaData, element) {
+                // 既存のポップアップを削除
+                const existingPopup = document.querySelector('.tanka-popup');
+                if (existingPopup) {
+                    existingPopup.remove();
+                }
+
+                // エモーショナルな解説を生成
+                const commentary = this.generateEmotionalCommentary(tankaData.text);
+
+                const popup = document.createElement('div');
+                popup.className = 'tanka-popup';
+                popup.innerHTML = `
+                    <div class="tanka-popup-content">
+                        <div class="tanka-close-btn" onclick="this.closest('.tanka-popup').remove()">×</div>
+                        <div class="tanka-vertical-text">${this.createVerticalText(tankaData.text)}</div>
+                        <div class="tanka-commentary">
+                            ${commentary}
+                        </div>
+                        <div class="tanka-voting">
+                            <button class="vote-btn like-btn" onclick="window.tankaSystem.voteTanka(${tankaData.id}, 'like', this)">
+                                👍 いいね <span class="vote-count">${this.getVotes(tankaData.id).likes}</span>
+                            </button>
+                            <button class="vote-btn dislike-btn" onclick="window.tankaSystem.voteTanka(${tankaData.id}, 'dislike', this)">
+                                👎 う〜ん <span class="vote-count">${this.getVotes(tankaData.id).dislikes}</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="tanka-popup-overlay" onclick="this.closest('.tanka-popup').remove()"></div>
+                `;
+
+                document.body.appendChild(popup);
+
+                // アニメーション
+                requestAnimationFrame(() => {
+                    popup.classList.add('show');
+                });
+
+                console.log(`📝 Displaying tanka with commentary: "${tankaData.text.substring(0, 20)}..."`);
+            }
+
+            // 木下龍也・俵万智スタイルのエモーショナルな解説を生成
+            generateEmotionalCommentary(tankaText) {
+                console.log(`🔍 Analyzing tanka: "${tankaText}"`);
+                
+                // より一般的なテーマパターン
+                const generalPatterns = [
+                    {
+                        pattern: /笑.*不思議|ふしぎ.*笑/,
+                        style: "笑いの不思議さ。なぜその瞬間に笑みがこぼれるのか、理由はわからないけれど確かにある温かさ。"
+                    },
+                    {
+                        pattern: /神.*参り|かみさま.*きもち/,
+                        style: "神様に向き合う時の、言葉にならない気持ち。理屈じゃない、心の奥底からの素直な思い。"
+                    },
+                    {
+                        pattern: /子.*髪.*なで|さむしい.*子/,
+                        style: "子どもへの優しさが、髪をなでる手のひらに込められている。言葉以上に伝わる愛情。"
+                    },
+                    {
+                        pattern: /生きる.*信じる/,
+                        style: "生きることと信じること。この二つは切っても切れない関係。信じる力があるから生きていける。"
+                    },
+                    {
+                        pattern: /芽.*花.*育て/,
+                        style: "今は小さな芽でも、大切に育てればいつか花を咲かせる。成長への希望と愛情。"
+                    },
+                    {
+                        pattern: /夢.*楽し.*道/,
+                        style: "夢への道のりを楽しむ心。目的地よりも、歩いている今この時間を大切にする生き方。"
+                    },
+                    {
+                        pattern: /冬.*春.*ほしい/,
+                        style: "厳しい冬を経験したからこそ、春への憧れが深い。困難の後に来る希望への切実な願い。"
+                    },
+                    {
+                        pattern: /窓.*雨.*水|雨.*まかせる/,
+                        style: "窓辺の雨を見つめる時間。自然に身を任せる心の静けさ。コントロールできないものへの信頼。"
+                    }
+                ];
+
+                // パターンをチェック
+                for (let pattern of generalPatterns) {
+                    if (pattern.pattern.test(tankaText)) {
+                        console.log(`✅ Matched pattern: ${pattern.pattern}`);
+                        return pattern.style;
+                    }
+                }
+
+                // キーワードベースの解説生成
+                return this.generateKeywordBasedCommentary(tankaText);
+            }
+
+            // キーワードベースの解説生成
+            generateKeywordBasedCommentary(tankaText) {
+                const keywords = [];
+                
+                // 感情キーワード
+                if (/嬉し|楽し|幸せ|よろこ/.test(tankaText)) keywords.push('joy');
+                if (/悲し|泣|涙|辛|苦し/.test(tankaText)) keywords.push('sadness');
+                if (/愛|恋|好き|恋人/.test(tankaText)) keywords.push('love');
+                if (/不安|心配|怖|恐/.test(tankaText)) keywords.push('anxiety');
+                if (/懐かし|思い出|昔/.test(tankaText)) keywords.push('nostalgia');
+                
+                // 自然・季節キーワード
+                if (/春|桜|花|芽/.test(tankaText)) keywords.push('spring');
+                if (/夏|暑|海|陽/.test(tankaText)) keywords.push('summer');
+                if (/秋|紅葉|風|落ち葉/.test(tankaText)) keywords.push('autumn');
+                if (/冬|雪|寒|氷/.test(tankaText)) keywords.push('winter');
+                if (/雨|雲|空|虹/.test(tankaText)) keywords.push('weather');
+                
+                // 人間関係キーワード
+                if (/家族|母|父|子|親/.test(tankaText)) keywords.push('family');
+                if (/友|仲間|みんな/.test(tankaText)) keywords.push('friendship');
+                if (/一人|独り|孤独|ひとり/.test(tankaText)) keywords.push('solitude');
+                
+                // 時間キーワード
+                if (/過去|昔|思い出|前/.test(tankaText)) keywords.push('past');
+                if (/未来|明日|希望|将来/.test(tankaText)) keywords.push('future');
+                if (/今|瞬間|現在|いま/.test(tankaText)) keywords.push('present');
+
+                // キーワードに基づいた解説
+                const commentaryMap = {
+                    joy: "この歌に込められた喜びが、読む人の心も明るくしてくれる。幸せって、こうやって人から人へ伝わっていくもの。",
+                    sadness: "悲しみを丁寧に言葉にすることで、その感情に向き合おうとする強さを感じる。涙の向こう側にある希望。",
+                    love: "愛情を短歌に込める時の、その人への想いの深さ。言葉を選ぶ一つ一つに、愛が宿っている。",
+                    anxiety: "不安な気持ちも、こうして歌にすることで少し軽くなる。一人じゃないよ、という声が聞こえてくる。",
+                    nostalgia: "懐かしさに包まれながら、過去の自分と今の自分が対話している。時間を超えた心の交流。",
+                    spring: "春の訪れを心で感じ取る繊細さ。新しい季節への期待と希望が、言葉の端々に現れている。",
+                    family: "家族への愛情が、何気ない日常の描写に込められている。当たり前の幸せを大切にする心。",
+                    solitude: "一人の時間だからこそ見えてくる景色がある。孤独の中にある豊かさを発見する眼差し。",
+                    present: "今この瞬間を大切に捉える気持ち。過ぎ去ってしまう時間への愛おしさ。"
+                };
+
+                if (keywords.length > 0) {
+                    const primaryKeyword = keywords[0];
+                    console.log(`🎯 Generated commentary based on keyword: ${primaryKeyword}`);
+                    return commentaryMap[primaryKeyword] || this.getDefaultCommentary();
+                }
+
+                return this.getDefaultCommentary();
+            }
+
+            // デフォルト解説
+            getDefaultCommentary() {
+                const defaults = [
+                    "短い言葉の中に、深い想いが込められている。読むたびに新しい発見がある、そんな一首。",
+                    "日常の中の小さな気づきを、大切に言葉に込めた歌。作者の優しい眼差しが感じられる。",
+                    "この歌を読んでいると、自分の体験と重なる部分があって、心が動かされる。",
+                    "言葉と言葉の間にある余白に、読み手の想像が広がっていく。短歌の魅力を感じる一首。",
+                    "作者の心の動きが、そのまま読み手に伝わってくる。素直な感情表現が印象的。"
+                ];
+                
+                return defaults[Math.floor(Math.random() * defaults.length)];
+            }
+
+            // 縦書きテキストを生成
+            createVerticalText(text) {
+                const characters = text.split('');
+                return characters.map(char => `<span class="vertical-char">${char}</span>`).join('');
+            }
+
+            // 投票数を取得
+            getVotes(tankaId) {
+                return this.votingResults.get(tankaId) || { likes: 0, dislikes: 0 };
+            }
+
+            // 短歌に投票
+            async voteTanka(tankaId, voteType, buttonElement) {
+                try {
+                    console.log(`📊 Voting for tanka ${tankaId}: ${voteType}`);
+
+                    const response = await fetch('/api/tanka-vote', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            tankaId: tankaId,
+                            vote: voteType
+                        })
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success) {
+                            // ローカル投票結果を更新
+                            this.votingResults.set(tankaId, result.votes);
+                            
+                            // UI を更新
+                            this.updateVotingUI(tankaId);
+                            
+                            // 視覚的フィードバック
+                            buttonElement.classList.add('voted');
+                            setTimeout(() => {
+                                buttonElement.classList.remove('voted');
+                            }, 300);
+
+                            console.log(`✅ Vote recorded: ${voteType} for tanka ${tankaId}`);
+                        } else {
+                            throw new Error(result.error);
+                        }
+                    } else {
+                        throw new Error(`Server error: ${response.status}`);
+                    }
+
+                } catch (error) {
+                    console.error('❌ Vote failed:', error);
+                    alert('投票に失敗しました。もう一度お試しください。');
+                }
+            }
+
+            // 投票UI を更新
+            updateVotingUI(tankaId) {
+                const popup = document.querySelector('.tanka-popup');
+                if (!popup) return;
+
+                const votes = this.getVotes(tankaId);
+                const likesCount = popup.querySelector('.like-btn .vote-count');
+                const dislikesCount = popup.querySelector('.dislike-btn .vote-count');
+
+                if (likesCount) likesCount.textContent = votes.likes;
+                if (dislikesCount) dislikesCount.textContent = votes.dislikes;
+            }
+
+            // 統計情報を取得
+            getStats() {
+                return {
+                    totalTanka: this.tankaDatabase.length,
+                    totalVotes: Array.from(this.votingResults.values()).reduce((sum, votes) => sum + votes.likes + votes.dislikes, 0),
+                    mostLiked: this.getMostLikedTanka(),
+                    averageRating: this.getAverageRating()
+                };
+            }
+
+            getMostLikedTanka() {
+                let maxLikes = 0;
+                let mostLiked = null;
+
+                this.votingResults.forEach((votes, tankaId) => {
+                    if (votes.likes > maxLikes) {
+                        maxLikes = votes.likes;
+                        mostLiked = this.tankaDatabase.find(t => t.id === tankaId);
+                    }
+                });
+
+                return mostLiked;
+            }
+
+            getAverageRating() {
+                if (this.tankaDatabase.length === 0) return 0;
+                const sum = this.tankaDatabase.reduce((total, tanka) => total + tanka.rating, 0);
+                return (sum / this.tankaDatabase.length).toFixed(1);
+            }
+        }
+
+        // グローバルインスタンス
+        window.tankaSystem = new TankaSystem();
+
+        // DOM読み込み後に自動初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            window.photoManager = new PhotoManager();
+            window.imageDropHandler = new ImageDropHandler(window.photoManager);
+            
+            // 開発時のヘルプ表示
+            setTimeout(() => {
+                window.photoManager.checkPhotoFolders();
+                console.log('');
+                console.log('🔐 ADMIN ACCESS:');
+                console.log('   • Hidden button: Bottom-left corner (subtle gray circle)');
+                console.log('   • Emergency: Type "sogoods" for backup access');
+                console.log('   • Password: sogoods2024');
+                console.log('   • Session: 24-hour auto-login after authentication');
+                console.log('📱 Auto-resize: Upload ANY size - system optimizes automatically');
+                console.log('🔒 Security: Only authenticated admins can upload photos');
+            }, 2000);
         });
     </script>
 </body>
