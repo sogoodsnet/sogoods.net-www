@@ -43,174 +43,101 @@ jobs:
           echo "Shell: $SHELL"
           echo "Date: `date`"
           
-          # Bash使用を強制
-          /bin/bash << 'BASHEOF'
-          
-          # ディレクトリ構造を作成
+          # ディレクトリ作成（基本版と同じ）
           mkdir -p $HOME/www
           mkdir -p $HOME/www/assets/logo
           mkdir -p $HOME/www/functions/api
           mkdir -p $HOME/www/img/button
           mkdir -p $HOME/www/photos/main
           mkdir -p $HOME/www/photos/gallery
-          mkdir -p $HOME/backup/$(date +%Y%m%d_%H%M%S)
-          
           cd $HOME/www
           echo "Current directory: `pwd`"
           
-          # 既存ファイルのバックアップ（改良版）
-          if [ -f "index.html" ]; then
-            echo "📦 Backing up existing files..."
-            BACKUP_DIR="$HOME/backup/$(date +%Y%m%d_%H%M%S)"
-            cp -r * "$BACKUP_DIR/" 2>/dev/null || true
-            echo "Backup created at: $BACKUP_DIR"
-          fi
+          # 既存ファイルのバックアップ（基本版と同じ）
+          if ( -f "index.html" ) then
+            echo "Backing up existing files..."
+            mkdir -p $HOME/backup
+            cp *.html $HOME/backup/ >& /dev/null
+            cp *.css $HOME/backup/ >& /dev/null
+          endif
           
-          echo "📥 Downloading complete website from GitHub..."
+          echo "📥 Downloading files from GitHub..."
           
-          # Core HTML and CSS files
+          # 基本ファイル（成功版と同じ）
           echo "📄 Downloading core files..."
           fetch -q -o index.html https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/index.html || curl -s -o index.html https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/index.html
           fetch -q -o about.html https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/about.html || curl -s -o about.html https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/about.html
           fetch -q -o style.css https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/style.css || curl -s -o style.css https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/style.css
-          
-          # JavaScript files
-          echo "📜 Downloading JavaScript files..."
-          fetch -q -o photo-manager.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photo-manager.js 2>/dev/null || curl -s -o photo-manager.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photo-manager.js 2>/dev/null || echo "photo-manager.js not found (OK)"
-          fetch -q -o tanka-system.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/tanka-system.js 2>/dev/null || curl -s -o tanka-system.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/tanka-system.js 2>/dev/null || echo "tanka-system.js not found (OK)"
-          fetch -q -o notion-api.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/notion-api.js 2>/dev/null || curl -s -o notion-api.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/notion-api.js 2>/dev/null || echo "notion-api.js not found (OK)"
-          
-          # Database files
-          echo "🗃️ Downloading database files..."
           fetch -q -o tankadb.csv https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/tankadb.csv || curl -s -o tankadb.csv https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/tankadb.csv
-          fetch -q -o tanka-votes.csv https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/tanka-votes.csv 2>/dev/null || curl -s -o tanka-votes.csv https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/tanka-votes.csv 2>/dev/null || echo "tanka-votes.csv not found (OK)"
-          fetch -q -o tii-database.json https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/tii-database.json 2>/dev/null || curl -s -o tii-database.json https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/tii-database.json 2>/dev/null || echo "tii-database.json not found (OK)"
-          
-          # Configuration files
-          echo "⚙️ Downloading configuration files..."
-          fetch -q -o wrangler.toml https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/wrangler.toml 2>/dev/null || curl -s -o wrangler.toml https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/wrangler.toml 2>/dev/null || echo "wrangler.toml not found (OK)"
-          fetch -q -o _headers https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/_headers 2>/dev/null || curl -s -o _headers https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/_headers 2>/dev/null || echo "_headers not found (OK)"
-          fetch -q -o _redirects https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/_redirects 2>/dev/null || curl -s -o _redirects https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/_redirects 2>/dev/null || echo "_redirects not found (OK)"
-          fetch -q -o CNAME https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/CNAME 2>/dev/null || curl -s -o CNAME https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/CNAME 2>/dev/null || echo "CNAME not found (OK)"
-          
-          # PHP Photo Management System (OPTIONAL)
-          echo "🗂️ Downloading PHP photo management system..."
-          fetch -q -o .htaccess https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/.htaccess 2>/dev/null || curl -s -o .htaccess https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/.htaccess 2>/dev/null || echo ".htaccess not found (OK - will continue without PHP features)"
-          fetch -q -o photo-admin.php https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photo-admin.php 2>/dev/null || curl -s -o photo-admin.php https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photo-admin.php 2>/dev/null || echo "photo-admin.php not found (OK - will continue without PHP features)"
-          fetch -q -o update-photo-list.php https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/update-photo-list.php 2>/dev/null || curl -s -o update-photo-list.php https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/update-photo-list.php 2>/dev/null || echo "update-photo-list.php not found (OK - will continue without PHP features)"
-          fetch -q -o PHOTO_MANAGEMENT.md https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/PHOTO_MANAGEMENT.md 2>/dev/null || curl -s -o PHOTO_MANAGEMENT.md https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/PHOTO_MANAGEMENT.md 2>/dev/null || echo "PHOTO_MANAGEMENT.md not found (OK)"
-          
-          # Cloudflare Functions
-          echo "☁️ Downloading Cloudflare Functions..."
-          cd functions/api
-          fetch -q -o flickr-photos.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/functions/api/flickr-photos.js 2>/dev/null || curl -s -o flickr-photos.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/functions/api/flickr-photos.js 2>/dev/null || echo "flickr-photos.js not found (OK)"
-          fetch -q -o tii-entries.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/functions/api/tii-entries.js 2>/dev/null || curl -s -o tii-entries.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/functions/api/tii-entries.js 2>/dev/null || echo "tii-entries.js not found (OK)"
-          fetch -q -o tanka-vote.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/functions/api/tanka-vote.js 2>/dev/null || curl -s -o tanka-vote.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/functions/api/tanka-vote.js 2>/dev/null || echo "tanka-vote.js not found (OK)"
-          cd ../..
-          
-          # Assets
-          echo "🖼️ Downloading assets..."
-          cd assets/logo
-          fetch -q -o logo.png https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/assets/logo/logo.png 2>/dev/null || curl -s -o logo.png https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/assets/logo/logo.png 2>/dev/null || echo "logo.png not found (OK)"
-          cd ../..
-          
-          # Image buttons and icons
-          echo "🎨 Downloading image buttons..."
-          cd img/button
-          fetch -q -o maps.png https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/img/button/maps.png 2>/dev/null || curl -s -o maps.png https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/img/button/maps.png 2>/dev/null || echo "maps.png not found (OK)"
-          fetch -q -o maps_original.jpg https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/img/button/maps_original.jpg 2>/dev/null || curl -s -o maps_original.jpg https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/img/button/maps_original.jpg 2>/dev/null || echo "maps_original.jpg not found (OK)"
-          cd ../..
-          
-          # Photo system files
-          echo "📸 Downloading photo system files..."
-          cd photos
-          fetch -q -o photo-list.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/photo-list.js 2>/dev/null || curl -s -o photo-list.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/photo-list.js 2>/dev/null || echo "photo-list.js not found (OK)"
-          
-          # Sample photos for main gallery
-          echo "📷 Downloading sample photos..."
-          cd main
-          fetch -q -o "sample1.jpg" "https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/main/129-DSCN9004.JPG" 2>/dev/null || curl -s -o "sample1.jpg" "https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/main/129-DSCN9004.JPG" 2>/dev/null || echo "sample1.jpg not found (OK)"
-          fetch -q -o "sample2.jpg" "https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/main/21-DSC_2098.JPG" 2>/dev/null || curl -s -o "sample2.jpg" "https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photos/main/21-DSC_2098.JPG" 2>/dev/null || echo "sample2.jpg not found (OK)"
-          cd ../..
-          
-          # Documentation
-          echo "📚 Downloading documentation..."
           fetch -q -o README.md https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/README.md || curl -s -o README.md https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/README.md
           
-          # Set proper permissions (安全な権限設定)
-          echo "🔒 Setting file permissions..."
-          find . -type f -name "*.html" -exec chmod 644 {} \;
-          find . -type f -name "*.css" -exec chmod 644 {} \;
-          find . -type f -name "*.js" -exec chmod 644 {} \;
-          find . -type f -name "*.csv" -exec chmod 644 {} \;
-          find . -type f -name "*.json" -exec chmod 644 {} \;
-          find . -type f -name "*.md" -exec chmod 644 {} \;
-          find . -type f -name "*.php" -exec chmod 644 {} \;
-          find . -type f -name ".htaccess" -exec chmod 644 {} \;
-          find . -type f -name "*.jpg" -exec chmod 644 {} \;
-          find . -type f -name "*.jpeg" -exec chmod 644 {} \;
-          find . -type f -name "*.png" -exec chmod 644 {} \;
-          find . -type d -exec chmod 755 {} \;
+          # 追加ファイル（オプション - エラーでも続行）
+          echo "📜 Downloading additional files..."
+          fetch -q -o tanka-votes.csv https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/tanka-votes.csv >& /dev/null || curl -s -o tanka-votes.csv https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/tanka-votes.csv >& /dev/null || echo "tanka-votes.csv not found (OK)"
+          fetch -q -o tii-database.json https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/tii-database.json >& /dev/null || curl -s -o tii-database.json https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/tii-database.json >& /dev/null || echo "tii-database.json not found (OK)"
+          fetch -q -o wrangler.toml https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/wrangler.toml >& /dev/null || curl -s -o wrangler.toml https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/wrangler.toml >& /dev/null || echo "wrangler.toml not found (OK)"
+          fetch -q -o _headers https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/_headers >& /dev/null || curl -s -o _headers https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/_headers >& /dev/null || echo "_headers not found (OK)"
+          fetch -q -o _redirects https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/_redirects >& /dev/null || curl -s -o _redirects https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/_redirects >& /dev/null || echo "_redirects not found (OK)"
+          fetch -q -o CNAME https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/CNAME >& /dev/null || curl -s -o CNAME https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/CNAME >& /dev/null || echo "CNAME not found (OK)"
           
-          # Verify deployment
-          echo "📋 Complete deployment verification:"
-          echo "=== Core files ==="
-          ls -la *.html *.css *.csv 2>/dev/null || echo "Some core files missing"
-          echo ""
-          echo "=== PHP files (optional) ==="
-          ls -la *.php .htaccess 2>/dev/null || echo "No PHP files (normal)"
-          echo ""
-          echo "=== Directory structure ==="
-          find . -type d -name "*" | head -10
-          echo ""
-          echo "=== Assets ==="
-          ls -la assets/ 2>/dev/null || echo "No assets directory"
-          echo ""
-          echo "=== Functions ==="
-          ls -la functions/api/ 2>/dev/null || echo "No functions directory"
-          echo ""
+          # JavaScript ファイル
+          echo "🗂️ Downloading JavaScript files..."
+          fetch -q -o photo-manager.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photo-manager.js >& /dev/null || curl -s -o photo-manager.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photo-manager.js >& /dev/null || echo "photo-manager.js not found (OK)"
+          fetch -q -o tanka-system.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/tanka-system.js >& /dev/null || curl -s -o tanka-system.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/tanka-system.js >& /dev/null || echo "tanka-system.js not found (OK)"
+          fetch -q -o notion-api.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/notion-api.js >& /dev/null || curl -s -o notion-api.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/notion-api.js >& /dev/null || echo "notion-api.js not found (OK)"
           
-          # Content verification
-          echo "📄 Content verification:"
-          if [ -f "index.html" ]; then
-            INDEX_SIZE=$(wc -c < index.html 2>/dev/null || echo "0")
-            echo "index.html: $INDEX_SIZE bytes"
-            if [ "$INDEX_SIZE" -gt "10000" ]; then
-              echo "✅ index.html looks good (size > 10KB)"
-            else
-              echo "⚠️ index.html may be incomplete"
-            fi
-          fi
+          # PHP ファイル（完全にオプション）
+          echo "🔧 Downloading PHP files (optional)..."
+          fetch -q -o .htaccess https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/.htaccess >& /dev/null || curl -s -o .htaccess https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/.htaccess >& /dev/null || echo ".htaccess not found (will continue without PHP features)"
+          fetch -q -o photo-admin.php https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photo-admin.php >& /dev/null || curl -s -o photo-admin.php https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photo-admin.php >& /dev/null || echo "photo-admin.php not found (will continue without PHP features)"
+          fetch -q -o update-photo-list.php https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/update-photo-list.php >& /dev/null || curl -s -o update-photo-list.php https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/update-photo-list.php >& /dev/null || echo "update-photo-list.php not found (will continue without PHP features)"
           
-          if [ -f "tankadb.csv" ]; then
-            TANKA_COUNT=$(wc -l < tankadb.csv 2>/dev/null || echo "0")
-            echo "tankadb.csv: $TANKA_COUNT lines"
-          fi
+          # サブディレクトリファイル（エラーでも続行）
+          echo "📁 Downloading subdirectory files..."
+          cd functions/api
+          fetch -q -o flickr-photos.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/functions/api/flickr-photos.js >& /dev/null || curl -s -o flickr-photos.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/functions/api/flickr-photos.js >& /dev/null || echo "flickr-photos.js not found (OK)"
+          fetch -q -o tii-entries.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/functions/api/tii-entries.js >& /dev/null || curl -s -o tii-entries.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/functions/api/tii-entries.js >& /dev/null || echo "tii-entries.js not found (OK)"
+          fetch -q -o tanka-vote.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/functions/api/tanka-vote.js >& /dev/null || curl -s -o tanka-vote.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/functions/api/tanka-vote.js >& /dev/null || echo "tanka-vote.js not found (OK)"
+          cd ../..
           
-          echo "✅ Complete website deployment finished!"
-          echo "📍 Deployed to: `pwd`"
-          echo "🌐 Available at: https://sogoodsnet.sakura.ne.jp/"
+          cd assets/logo
+          fetch -q -o logo.png https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/assets/logo/logo.png >& /dev/null || curl -s -o logo.png https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/assets/logo/logo.png >& /dev/null || echo "logo.png not found (OK)"
+          cd ../..
           
-          BASHEOF
+          cd img/button
+          fetch -q -o maps.png https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/img/button/maps.png >& /dev/null || curl -s -o maps.png https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/img/button/maps.png >& /dev/null || echo "maps.png not found (OK)"
+          cd ../..
           
-    - name: Comprehensive Website Testing
+          # ファイル権限設定（基本版と同じ）
+          chmod 644 *.html *.css *.md >& /dev/null
+          chmod 644 *.csv *.json >& /dev/null
+          chmod 644 *.js >& /dev/null
+          chmod 644 *.php >& /dev/null
+          chmod 755 .
+          
+          # 結果確認
+          echo "📋 Deployed files:"
+          ls -la
+          
+          # ファイル内容確認
+          echo "📄 index.html first line:"
+          head -1 index.html >& /dev/null && echo "index.html found" || echo "index.html not found"
+          
+          echo "✅ Complete deployment completed!"
+          
+    - name: Test Website Access
       run: |
-        echo "🌐 Testing complete website functionality..."
+        echo "🌐 Testing website access..."
         sleep 10
         
-        # Basic HTTP access test
-        echo "📡 Testing basic HTTP access..."
+        # HTTPステータス確認
         STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://sogoodsnet.sakura.ne.jp/ || echo "000")
         echo "HTTP Status: $STATUS"
         
-        # Content verification
-        echo "📄 Testing content delivery..."
         if [ "$STATUS" = "200" ]; then
-          echo "✅ Complete website is functioning correctly!"
-          echo "🔐 Admin features available"
-          echo "📱 All integrated features working"
+          echo "✅ Website is accessible!"
         else
-          echo "❌ Website is not accessible (Status: $STATUS)"
+          echo "⚠️ Website may not be accessible yet (Status: $STATUS)"
         fi
         
     - name: Deployment Summary
@@ -221,24 +148,10 @@ jobs:
         if [ "${{ job.status }}" == "success" ]; then
           echo "- **Status**: ✅ Success" >> $GITHUB_STEP_SUMMARY
           echo "- **Method**: Complete file sync from GitHub" >> $GITHUB_STEP_SUMMARY
-          echo "- **Files Deployed**: " >> $GITHUB_STEP_SUMMARY
-          echo "  - 📄 Core: HTML, CSS, JavaScript" >> $GITHUB_STEP_SUMMARY
-          echo "  - 🗃️ Databases: Tanka CSV, TII JSON" >> $GITHUB_STEP_SUMMARY
-          echo "  - ☁️ Functions: Cloudflare API endpoints" >> $GITHUB_STEP_SUMMARY
-          echo "  - 🖼️ Assets: Logos and images" >> $GITHUB_STEP_SUMMARY
-          echo "  - 🗂️ PHP: Photo management system" >> $GITHUB_STEP_SUMMARY
-          echo "  - ⚙️ Config: Headers, redirects, CNAME" >> $GITHUB_STEP_SUMMARY
+          echo "- **Files**: Core + Additional features deployed" >> $GITHUB_STEP_SUMMARY
         else
           echo "- **Status**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
           echo "- **Check**: SSH connection, file downloads, or permissions" >> $GITHUB_STEP_SUMMARY
         fi
         echo "- **Server**: FreeBSD Sakura VPS" >> $GITHUB_STEP_SUMMARY
         echo "- **URL**: 🌐 [https://sogoodsnet.sakura.ne.jp/](https://sogoodsnet.sakura.ne.jp/)" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 🎯 Available Features:" >> $GITHUB_STEP_SUMMARY
-        echo "1. 📷 Photo galleries and management" >> $GITHUB_STEP_SUMMARY
-        echo "2. 📝 Tanka poem system with voting" >> $GITHUB_STEP_SUMMARY
-        echo "3. 💬 TII database entries" >> $GITHUB_STEP_SUMMARY
-        echo "4. 🗂️ PHP Photo Management (if .htaccess supported)" >> $GITHUB_STEP_SUMMARY
-        echo "5. 🖼️ Dynamic image displays" >> $GITHUB_STEP_SUMMARY
-        echo "6. 📊 Real-time statistics" >> $GITHUB_STEP_SUMMARY
