@@ -8,15 +8,12 @@ on:
       - '*.html'
       - '*.css'
       - '*.js'
-      - '*.php'
       - '*.csv'
       - '*.json'
       - '*.md'
-      - '.htaccess'
       - 'assets/**'
       - 'functions/**'
       - 'img/**'
-      - 'photos/**'
 
 jobs:
   complete-deploy:
@@ -26,7 +23,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
-    - name: Complete Website Deployment to FreeBSD
+    - name: Safe Complete Website Deployment
       uses: appleboy/ssh-action@v1.0.0
       with:
         host: sogoodsnet.sakura.ne.jp
@@ -35,7 +32,7 @@ jobs:
         port: 22
         timeout: 60s
         script: |
-          echo "🚀 Complete Website Deployment to FreeBSD"
+          echo "🚀 Safe Complete Website Deployment to FreeBSD"
           
           # 基本情報確認
           echo "User: `whoami`"
@@ -43,17 +40,15 @@ jobs:
           echo "Shell: $SHELL"
           echo "Date: `date`"
           
-          # ディレクトリ作成（基本版と同じ）
+          # ディレクトリ作成
           mkdir -p $HOME/www
           mkdir -p $HOME/www/assets/logo
           mkdir -p $HOME/www/functions/api
           mkdir -p $HOME/www/img/button
-          mkdir -p $HOME/www/photos/main
-          mkdir -p $HOME/www/photos/gallery
           cd $HOME/www
           echo "Current directory: `pwd`"
           
-          # 既存ファイルのバックアップ（基本版と同じ）
+          # 既存ファイルのバックアップ
           if ( -f "index.html" ) then
             echo "Backing up existing files..."
             mkdir -p $HOME/backup
@@ -61,9 +56,14 @@ jobs:
             cp *.css $HOME/backup/ >& /dev/null
           endif
           
-          echo "📥 Downloading files from GitHub..."
+          # 問題となる可能性があるファイルを削除
+          echo "🗑️ Removing potentially problematic files..."
+          rm -f .htaccess >& /dev/null
+          rm -f *.php >& /dev/null
           
-          # 基本ファイル（成功版と同じ）
+          echo "📥 Downloading safe files from GitHub..."
+          
+          # 基本ファイル（確実に動作する）
           echo "📄 Downloading core files..."
           fetch -q -o index.html https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/index.html || curl -s -o index.html https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/index.html
           fetch -q -o about.html https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/about.html || curl -s -o about.html https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/about.html
@@ -71,8 +71,8 @@ jobs:
           fetch -q -o tankadb.csv https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/tankadb.csv || curl -s -o tankadb.csv https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/tankadb.csv
           fetch -q -o README.md https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/README.md || curl -s -o README.md https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/README.md
           
-          # 追加ファイル（オプション - エラーでも続行）
-          echo "📜 Downloading additional files..."
+          # 安全な追加ファイル
+          echo "📜 Downloading safe additional files..."
           fetch -q -o tanka-votes.csv https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/tanka-votes.csv >& /dev/null || curl -s -o tanka-votes.csv https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/tanka-votes.csv >& /dev/null || echo "tanka-votes.csv not found (OK)"
           fetch -q -o tii-database.json https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/tii-database.json >& /dev/null || curl -s -o tii-database.json https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/tii-database.json >& /dev/null || echo "tii-database.json not found (OK)"
           fetch -q -o wrangler.toml https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/wrangler.toml >& /dev/null || curl -s -o wrangler.toml https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/wrangler.toml >& /dev/null || echo "wrangler.toml not found (OK)"
@@ -80,19 +80,13 @@ jobs:
           fetch -q -o _redirects https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/_redirects >& /dev/null || curl -s -o _redirects https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/_redirects >& /dev/null || echo "_redirects not found (OK)"
           fetch -q -o CNAME https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/CNAME >& /dev/null || curl -s -o CNAME https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/CNAME >& /dev/null || echo "CNAME not found (OK)"
           
-          # JavaScript ファイル
+          # JavaScript ファイル（安全）
           echo "🗂️ Downloading JavaScript files..."
           fetch -q -o photo-manager.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photo-manager.js >& /dev/null || curl -s -o photo-manager.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photo-manager.js >& /dev/null || echo "photo-manager.js not found (OK)"
           fetch -q -o tanka-system.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/tanka-system.js >& /dev/null || curl -s -o tanka-system.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/tanka-system.js >& /dev/null || echo "tanka-system.js not found (OK)"
           fetch -q -o notion-api.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/notion-api.js >& /dev/null || curl -s -o notion-api.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/notion-api.js >& /dev/null || echo "notion-api.js not found (OK)"
           
-          # PHP ファイル（完全にオプション）
-          echo "🔧 Downloading PHP files (optional)..."
-          fetch -q -o .htaccess https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/.htaccess >& /dev/null || curl -s -o .htaccess https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/.htaccess >& /dev/null || echo ".htaccess not found (will continue without PHP features)"
-          fetch -q -o photo-admin.php https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photo-admin.php >& /dev/null || curl -s -o photo-admin.php https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/photo-admin.php >& /dev/null || echo "photo-admin.php not found (will continue without PHP features)"
-          fetch -q -o update-photo-list.php https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/update-photo-list.php >& /dev/null || curl -s -o update-photo-list.php https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/update-photo-list.php >& /dev/null || echo "update-photo-list.php not found (will continue without PHP features)"
-          
-          # サブディレクトリファイル（エラーでも続行）
+          # サブディレクトリファイル（安全）
           echo "📁 Downloading subdirectory files..."
           cd functions/api
           fetch -q -o flickr-photos.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/functions/api/flickr-photos.js >& /dev/null || curl -s -o flickr-photos.js https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/functions/api/flickr-photos.js >& /dev/null || echo "flickr-photos.js not found (OK)"
@@ -106,24 +100,25 @@ jobs:
           
           cd img/button
           fetch -q -o maps.png https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/img/button/maps.png >& /dev/null || curl -s -o maps.png https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/img/button/maps.png >& /dev/null || echo "maps.png not found (OK)"
+          fetch -q -o maps_original.jpg https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/img/button/maps_original.jpg >& /dev/null || curl -s -o maps_original.jpg https://raw.githubusercontent.com/sogoodsnet/sogoods.net-www/main/img/button/maps_original.jpg >& /dev/null || echo "maps_original.jpg not found (OK)"
           cd ../..
           
-          # ファイル権限設定（基本版と同じ）
+          # ファイル権限設定
           chmod 644 *.html *.css *.md >& /dev/null
           chmod 644 *.csv *.json >& /dev/null
           chmod 644 *.js >& /dev/null
-          chmod 644 *.php >& /dev/null
           chmod 755 .
           
           # 結果確認
-          echo "📋 Deployed files:"
+          echo "📋 Safe deployment completed:"
           ls -la
           
-          # ファイル内容確認
-          echo "📄 index.html first line:"
-          head -1 index.html >& /dev/null && echo "index.html found" || echo "index.html not found"
+          # 確認：問題のあるファイルがないことを確認
+          echo "🔍 Checking for problematic files:"
+          ls -la .htaccess >& /dev/null && echo "⚠️ .htaccess exists" || echo "✅ No .htaccess"
+          ls -la *.php >& /dev/null && echo "⚠️ PHP files exist" || echo "✅ No PHP files"
           
-          echo "✅ Complete deployment completed!"
+          echo "✅ Safe complete deployment finished!"
           
     - name: Test Website Access
       run: |
@@ -135,23 +130,34 @@ jobs:
         echo "HTTP Status: $STATUS"
         
         if [ "$STATUS" = "200" ]; then
-          echo "✅ Website is accessible!"
+          echo "✅ Website is accessible and working!"
         else
-          echo "⚠️ Website may not be accessible yet (Status: $STATUS)"
+          echo "❌ Website test failed (Status: $STATUS)"
         fi
         
     - name: Deployment Summary
       if: always()
       run: |
-        echo "## 🚀 Complete Website Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "## 🚀 Safe Complete Website Deployment Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         if [ "${{ job.status }}" == "success" ]; then
           echo "- **Status**: ✅ Success" >> $GITHUB_STEP_SUMMARY
-          echo "- **Method**: Complete file sync from GitHub" >> $GITHUB_STEP_SUMMARY
-          echo "- **Files**: Core + Additional features deployed" >> $GITHUB_STEP_SUMMARY
+          echo "- **Method**: Safe file deployment (no PHP/htaccess)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Files**: Core + JS + Assets + Functions" >> $GITHUB_STEP_SUMMARY
         else
           echo "- **Status**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
-          echo "- **Check**: SSH connection, file downloads, or permissions" >> $GITHUB_STEP_SUMMARY
         fi
         echo "- **Server**: FreeBSD Sakura VPS" >> $GITHUB_STEP_SUMMARY
         echo "- **URL**: 🌐 [https://sogoodsnet.sakura.ne.jp/](https://sogoodsnet.sakura.ne.jp/)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### ✅ Safe Features Deployed:" >> $GITHUB_STEP_SUMMARY
+        echo "1. 📄 Core HTML/CSS files" >> $GITHUB_STEP_SUMMARY
+        echo "2. 📜 JavaScript functionality" >> $GITHUB_STEP_SUMMARY
+        echo "3. 🗃️ Database files (CSV, JSON)" >> $GITHUB_STEP_SUMMARY
+        echo "4. 🖼️ Assets and images" >> $GITHUB_STEP_SUMMARY
+        echo "5. ☁️ Cloudflare functions" >> $GITHUB_STEP_SUMMARY
+        echo "6. ⚙️ Configuration files" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### ⚠️ Excluded for Safety:" >> $GITHUB_STEP_SUMMARY
+        echo "- .htaccess (may cause server errors)" >> $GITHUB_STEP_SUMMARY
+        echo "- PHP files (may not be supported)" >> $GITHUB_STEP_SUMMARY
